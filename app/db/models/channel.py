@@ -5,10 +5,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import DateTime, ForeignKey, Text, String, Boolean
 from datetime import datetime, timezone
 from ..base import Base
+from .association_tables import channel_tags
 
 if TYPE_CHECKING:
     from .video import Video
     from .folder import Folder
+    from .tag import Tag
 
 
 class Channel(Base):
@@ -52,6 +54,13 @@ class Channel(Base):
 
     videos: Mapped[list["Video"]] = relationship(
         back_populates="channel", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+    # Many-to-many relationship with Tags
+    tags: Mapped[list["Tag"]] = relationship(
+        secondary=channel_tags,
+        back_populates="channels",
+        lazy="selectin"
     )
 
     def __repr__(self) -> str:

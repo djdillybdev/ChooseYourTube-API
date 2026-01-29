@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from datetime import datetime, timedelta
 from ..core.config import settings
-from ..schemas.video import VideoCreate
+from ..schemas.video import VideoCreate, VideoUpdate
 from ..db.session import sessionmanager
 from ..db.crud import crud_channel, crud_video
 from ..db.models.video import Video
@@ -295,3 +295,58 @@ async def get_videos_for_channel(
     return await crud_video.get_videos(
         db_session, channel_id=channel_id, limit=limit, offset=offset
     )
+
+
+async def update_video(
+    video_id: str, payload: VideoUpdate, db_session: AsyncSession
+) -> Video:
+    """
+    Updates a video by its ID. Allows updating favorited status, watched status, short status, and tags.
+    """
+    video = await crud_video.get_videos(db_session, id=video_id, first=True)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    # Update simple fields
+    if payload.is_favorited is not None:
+        video.is_favorited = payload.is_favorited
+    if payload.is_watched is not None:
+        video.is_watched = payload.is_watched
+    if payload.is_short is not None:
+        video.is_short = payload.is_short
+
+    # Handle tag synchronization
+    if payload.tag_ids is not None:
+        from ..db.models.tag import Tag
+
+        # Load all requested tags from database
+        requested_tag_ids = set(payload.tag_ids)
+        requested_tags = []
+
+        for tag_id in requested_tag_ids:
+            tag = await db_session.get(Tag, tag_id)
+            if tag is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Tag with id {tag_id} does not exist"
+                )
+            requested_tags.append(tag)
+
+        # Calculate current tags
+        current_tag_ids = {tag.id for tag in video.tags}
+
+        # Find tags to add and remove
+        tags_to_add_ids = requested_tag_ids - current_tag_ids
+        tags_to_remove_ids = current_tag_ids - requested_tag_ids
+
+        # Remove tags that are no longer needed
+        for tag in list(video.tags):
+            if tag.id in tags_to_remove_ids:
+                video.tags.remove(tag)
+
+        # Add new tags
+        for tag in requested_tags:
+            if tag.id in tags_to_add_ids:
+                video.tags.append(tag)
+
+    return await crud_video.update_video(db_session, video)

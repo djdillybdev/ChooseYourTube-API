@@ -6,9 +6,11 @@ from sqlalchemy import String, Text, Boolean, DateTime, Integer, ForeignKey, ARR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.mutable import MutableList
 from ..base import Base
+from .association_tables import video_tags
 
 if TYPE_CHECKING:
     from .channel import Channel
+    from .tag import Tag
 
 
 class Video(Base):
@@ -53,6 +55,13 @@ class Video(Base):
     )
 
     channel: Mapped["Channel"] = relationship(back_populates="videos")
+
+    # Many-to-many relationship with Tags (separate from yt_tags which are YouTube metadata)
+    tags: Mapped[list["Tag"]] = relationship(
+        secondary=video_tags,
+        back_populates="videos",
+        lazy="selectin"
+    )
 
     def __repr__(self) -> str:
         return f"<Video(id={self.id}, title='{self.title}')>"

@@ -20,6 +20,7 @@ class ChannelUpdate(BaseModel):
 
     is_favorited: bool | None = None
     folder_id: int | None = None  # Allows moving a channel
+    tag_ids: list[int] | None = None  # List of tag IDs to associate with the channel
 
 
 # --- Output Schema ---
