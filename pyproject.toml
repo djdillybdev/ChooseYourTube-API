@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiosqlite>=0.22.1",
     "alembic>=1.16.4",
     "apscheduler>=3.11.0",
     "arq>=0.25.0",
@@ -30,6 +31,39 @@ dev = [
     "mypy>=1.17.1",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.0.0",
+    "pytest-mock>=3.12.0",
     "ruff>=0.12.9",
     "types-redis>=4.6.0.20241004",
 ]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--cov=app",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html",
+]
+markers = [
+    "unit: Pure unit tests without external dependencies",
+    "integration: Integration tests requiring database",
+    "youtube_api: Tests requiring YouTube API (mocked)",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "app/main.py",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true

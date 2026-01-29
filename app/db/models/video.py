@@ -2,8 +2,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Text, Boolean, DateTime, Integer, ForeignKey, ARRAY
+from sqlalchemy import String, Text, Boolean, DateTime, Integer, ForeignKey, ARRAY, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.mutable import MutableList
 from ..base import Base
 
 if TYPE_CHECKING:
@@ -38,8 +39,13 @@ class Video(Base):
         onupdate=datetime.now(timezone.utc),
         nullable=False,
     )
+    # Use JSON for cross-database compatibility (works with both PostgreSQL and SQLite)
+    # MutableList allows in-place modifications to be tracked by SQLAlchemy
     yt_tags: Mapped[list[str]] = mapped_column(
-        ARRAY(Text), default=list, nullable=False, server_default="{}"
+        MutableList.as_mutable(JSON),
+        default=list,
+        nullable=False,
+        server_default="[]"
     )
 
     channel_id: Mapped[str] = mapped_column(
