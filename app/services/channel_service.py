@@ -21,7 +21,7 @@ async def get_channel_by_id(channel_id: str, db_session: AsyncSession) -> Channe
     """
     Retrieves a channel by its ID, raising a 404 error if not found.
     """
-    channel = await crud_channel.get_channel_by_id(db_session, channel_id)
+    channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
     if not channel:
         raise HTTPException(status_code=404, detail="Channel not found")
     return channel
@@ -31,7 +31,7 @@ async def get_all_channels(db_session: AsyncSession) -> list[Channel]:
     """
     Retrieves all channels.
     """
-    return await crud_channel.get_all_channels(db_session)
+    return await crud_channel.get_channels(db_session)
 
 
 async def refresh_channel_by_id(
@@ -40,7 +40,7 @@ async def refresh_channel_by_id(
     """
     Refresh the given channel to get its latest videos
     """
-    channel = await crud_channel.get_channel_by_id(db_session, channel_id)
+    channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
     if not channel:
         raise HTTPException(status_code=404, detail="Channel not found")
 
@@ -80,7 +80,7 @@ async def add_new_channel(
     yt_channel_data = items[0]
     channel_id = yt_channel_data["id"]
 
-    existing_channel = await crud_channel.get_channel_by_id(db_session, channel_id)
+    existing_channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
     if existing_channel:
         raise HTTPException(
             status_code=409, detail="This channel has already been added."
@@ -109,7 +109,7 @@ async def update_channel(
     """
     Updates a channel by its ID. Allows favoriting a channel and changing its folder.
     """
-    channel = await crud_channel.get_channel_by_id(db_session, channel_id)
+    channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
     if not channel:
         raise HTTPException(status_code=404, detail="Channel not found")
     if payload.is_favorited is not None:

@@ -1,60 +1,10 @@
 from typing import Literal
-from sqlalchemy import select, delete
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.inspection import inspect
 from ..models.channel import Channel
+from .crud_base import base_get, _validate_pagination, _validate_order_by_field
 
 _UNSET = object()
-
-def _get_valid_fields(model_class) -> set[str]:
-    """Extract valid column names from SQLAlchemy model."""
-    mapper = inspect(model_class)
-    return {col.key for col in mapper.columns}
-
-
-def _validate_filter_field(model_class, field_name: str) -> None:
-    """Validate that a field name exists on the model."""
-    valid_fields = _get_valid_fields(model_class)
-    if field_name not in valid_fields:
-        raise ValueError(
-            f"Invalid filter field '{field_name}'. "
-            f"Valid fields: {', '.join(sorted(valid_fields))}"
-        )
-
-
-def _validate_order_by_field(model_class, field_name: str) -> None:
-    """Validate that an order_by field exists on the model."""
-    valid_fields = _get_valid_fields(model_class)
-    if field_name not in valid_fields:
-        raise ValueError(
-            f"Invalid order_by field '{field_name}'. "
-            f"Valid fields: {', '.join(sorted(valid_fields))}"
-        )
-
-
-def _validate_pagination(limit: int | None, offset: int) -> None:
-    """Validate pagination parameters."""
-    if limit is not None and limit < 0:
-        raise ValueError("limit must be non-negative")
-    if offset < 0:
-        raise ValueError("offset must be non-negative")
-
-async def get_channel_by_id(
-    db_session: AsyncSession, channel_id: str
-) -> Channel | None:
-    """
-    Retrieves a Channel by its primary key (the YouTube channel ID).
-    """
-    result = await db_session.execute(select(Channel).where(Channel.id == channel_id))
-    return result.scalars().first()
-
-
-async def get_all_channels(db_session: AsyncSession) -> list[Channel]:
-    """
-    Retrieves all channels from the database.
-    """
-    result = await db_session.execute(select(Channel).order_by(Channel.title))
-    return list(result.scalars().all())
 
 async def get_channels(
         db: AsyncSession,
@@ -96,28 +46,15 @@ async def get_channels(
     if folder_id is not _UNSET:
         filters["folder_id"] = folder_id
 
-    query = select(Channel)
-
-    for field_name, value in filters.items():
-        column = getattr(Channel, field_name)
-        query = query.where(column == value)
-
-    order_column = getattr(Channel, order_by)
-    if order_direction == "desc":
-        query = query.order_by(order_column.desc())
-    else:
-        query = query.order_by(order_column.asc())
-
-    if limit is not None:
-        query = query.limit(limit)
-    query = query.offset(offset)
-
-    result = await db.execute(query)
-
-    if first:
-        return result.scalars().first()
-    else:
-        return list(result.scalars().all())
+    return await base_get(
+        db, Channel,
+        filters=filters,
+        limit=limit,
+        offset=offset,
+        order_by=order_by,
+        order_direction=order_direction,
+        first=first
+    )
 
 
 async def create_channel(

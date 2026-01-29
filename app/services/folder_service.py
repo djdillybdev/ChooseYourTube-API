@@ -37,13 +37,13 @@ def _assert_not_cycle(
 
 
 async def get_tree(db: AsyncSession) -> list[FolderOut]:
-    folders = await crud_folder.get_all(db)
+    folders = await crud_folder.get_folders(db, limit=None)
     return _build_tree(folders)
 
 
 async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
     if payload.parent_id:
-        parent = await crud_folder.get_by_id(db, payload.parent_id)
+        parent = await crud_folder.get_folders(db, id=payload.parent_id, first=True)
         if not parent:
             raise HTTPException(status_code=404, detail="Parent folder not found")
     return await crud_folder.create(
@@ -54,7 +54,7 @@ async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
 async def update_folder(
     folder_id: int, payload: FolderUpdate, db: AsyncSession
 ) -> Folder:
-    folder = await crud_folder.get_by_id(db, folder_id)
+    folder = await crud_folder.get_folders(db, id=folder_id, first=True)
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
@@ -62,10 +62,10 @@ async def update_folder(
         raise HTTPException(status_code=400, detail="Folder cannot be its own parent")
 
     if payload.parent_id is not None:
-        parent = await crud_folder.get_by_id(db, payload.parent_id)
+        parent = await crud_folder.get_folders(db, id=payload.parent_id, first=True)
         if not parent:
             raise HTTPException(status_code=404, detail="New parent not found")
-        all_folders = await crud_folder.get_all(db)
+        all_folders = await crud_folder.get_folders(db, limit=None)
         by_id = {f.id: f for f in all_folders}
         _assert_not_cycle(by_id, folder_id, payload.parent_id)
 

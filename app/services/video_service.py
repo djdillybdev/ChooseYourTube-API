@@ -97,7 +97,7 @@ async def fetch_and_store_all_channel_videos_task(ctx, channel_id: str):
     youtube_client = YouTubeAPI(api_key=settings.YOUTUBE_API_KEY)
 
     async with sessionmanager.session() as db_session:
-        channel = await crud_channel.get_channel_by_id(db_session, channel_id)
+        channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
         if not channel:
             print(f"Channel {channel_id} not found in DB. Exiting task.")
             return
@@ -185,7 +185,7 @@ async def refresh_latest_channel_videos(
     total_parsed_videos = len(parsed_video_ids)
 
     seen_video_ids = []
-    latest_videos = await crud_video.get_videos_by_channel_id(db_session, channel_id)
+    latest_videos = await crud_video.get_videos(db_session, channel_id=channel_id)
     for video in latest_videos:
         if video.id in parsed_video_ids:
             seen_video_ids.append(video.id)
@@ -195,7 +195,7 @@ async def refresh_latest_channel_videos(
     if len(seen_video_ids) == total_parsed_videos:
         return
     if len(seen_video_ids) == 0:
-        channel = await crud_channel.get_channel_by_id(db_session, channel_id)
+        channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
         if not channel:
             print(f"Channel {channel_id} not found in DB. Exiting task.")
             return
@@ -277,7 +277,7 @@ async def create_and_update_videos(
 
 
 async def get_video_by_id(video_id: str, db_session: AsyncSession) -> Video:
-    video = await crud_video.get_video_by_id(db_session, video_id)
+    video = await crud_video.get_videos(db_session, id=video_id, first=True)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
     return video
@@ -286,12 +286,12 @@ async def get_video_by_id(video_id: str, db_session: AsyncSession) -> Video:
 async def get_all_videos(
     db_session: AsyncSession, limit: int = 50, offset: int = 0
 ) -> list[Video]:
-    return await crud_video.get_all_videos(db_session, limit=limit, offset=offset)
+    return await crud_video.get_videos(db_session, limit=limit, offset=offset)
 
 
 async def get_videos_for_channel(
     channel_id: str, db_session: AsyncSession, limit: int = 50, offset: int = 0
 ) -> list[Video]:
-    return await crud_video.get_videos_by_channel_id(
-        db_session, channel_id, limit=limit, offset=offset
+    return await crud_video.get_videos(
+        db_session, channel_id=channel_id, limit=limit, offset=offset
     )
