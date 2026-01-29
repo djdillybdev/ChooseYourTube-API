@@ -74,6 +74,4 @@ async def update_folder(
     if payload.parent_id is not None:
         folder.parent_id = payload.parent_id
 
-    await db.commit()
-    await db.refresh(folder)
-    return folder
+    return await crud_folder.update(db, folder)

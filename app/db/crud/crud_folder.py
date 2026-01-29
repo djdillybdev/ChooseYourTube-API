@@ -1,7 +1,7 @@
 from typing import Literal
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.folder import Folder
-from .crud_base import base_get, _validate_pagination, _validate_order_by_field
+from .crud_base import base_get, base_update, _validate_pagination, _validate_order_by_field
 
 _UNSET = object()
 
@@ -54,6 +54,20 @@ async def create(db: AsyncSession, folder: Folder) -> Folder:
     await db.commit()
     await db.refresh(folder)
     return folder
+
+
+async def update(db: AsyncSession, folder: Folder) -> Folder:
+    """
+    Updates a folder instance in the database.
+
+    Args:
+        db: Database session
+        folder: The folder instance with modified attributes
+
+    Returns:
+        The refreshed folder instance
+    """
+    return await base_update(db, folder)
 
 
 async def delete(db: AsyncSession, folder: Folder) -> None:

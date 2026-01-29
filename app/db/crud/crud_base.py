@@ -137,3 +137,27 @@ async def base_get(
         return result.scalars().first()
     else:
         return list(result.scalars().all())
+
+
+async def base_update(db: AsyncSession, model_instance: ModelType) -> ModelType:
+    """
+    Base update function for persisting changes to a model instance.
+
+    This function handles the commit and refresh operations, providing a
+    consistent interface for all update operations across different models.
+
+    Args:
+        db: Database session
+        model_instance: The SQLAlchemy model instance with modified attributes
+
+    Returns:
+        The refreshed model instance with updated data from the database
+
+    Example:
+        folder = await crud_folder.get_folders(db, id=1, first=True)
+        folder.name = "New Name"
+        updated_folder = await crud_folder.update(db, folder)
+    """
+    await db.commit()
+    await db.refresh(model_instance)
+    return model_instance

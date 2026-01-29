@@ -2,7 +2,7 @@ from typing import Literal
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.channel import Channel
-from .crud_base import base_get, _validate_pagination, _validate_order_by_field
+from .crud_base import base_get, base_update, _validate_pagination, _validate_order_by_field
 
 _UNSET = object()
 
@@ -67,6 +67,20 @@ async def create_channel(
     await db_session.commit()
     await db_session.refresh(channel_to_create)
     return channel_to_create
+
+
+async def update_channel(db_session: AsyncSession, channel: Channel) -> Channel:
+    """
+    Updates a channel instance in the database.
+
+    Args:
+        db_session: Database session
+        channel: The channel instance with modified attributes
+
+    Returns:
+        The refreshed channel instance
+    """
+    return await base_update(db_session, channel)
 
 
 async def delete_channel(db_session: AsyncSession, channel_to_delete: Channel) -> None:

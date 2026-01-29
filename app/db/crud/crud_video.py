@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.video import Video
 from ...schemas.video import VideoCreate
-from .crud_base import base_get, _validate_pagination, _validate_order_by_field, _validate_filter_field
+from .crud_base import base_get, base_update, _validate_pagination, _validate_order_by_field, _validate_filter_field
 
 
 def _apply_video_ordering(query, order_column, order_by: str, order_direction: str):
@@ -99,3 +99,17 @@ async def get_videos(
         first=first,
         special_ordering_handler=_apply_video_ordering
     )
+
+
+async def update_video(db: AsyncSession, video: Video) -> Video:
+    """
+    Updates a video instance in the database.
+
+    Args:
+        db: Database session
+        video: The video instance with modified attributes
+
+    Returns:
+        The refreshed video instance
+    """
+    return await base_update(db, video)

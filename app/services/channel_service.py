@@ -116,9 +116,7 @@ async def update_channel(
         channel.is_favorited = payload.is_favorited
     if payload.folder_id is not None or payload.folder_id is None:
         channel.folder_id = payload.folder_id
-    await db_session.commit()
-    await db_session.refresh(channel)
-    return channel
+    return await crud_channel.update_channel(db_session, channel)
 
 
 async def delete_channel_by_id(channel_id: str, db_session: AsyncSession) -> None:
