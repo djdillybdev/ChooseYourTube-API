@@ -1,31 +1,40 @@
 from fastapi import APIRouter, status, Query, HTTPException
 from ..dependencies import DBSessionDep, YouTubeAPIDep, ArqDep
 from ..schemas.channel import ChannelCreate, ChannelOut, ChannelUpdate
+from ..schemas.base import PaginatedResponse
 from ..services import channel_service
 
 router = APIRouter(prefix="/channels", tags=["Channels"])
 
 
-@router.get("/", response_model=list[ChannelOut])
+@router.get("/", response_model=PaginatedResponse[ChannelOut])
 async def read_all_channels(
     db_session: DBSessionDep,
     is_favorited: bool | None = Query(None, description="Filter by favorited status"),
     folder_id: int | None = Query(None, description="Filter by folder ID (use 0 for root/no folder)"),
     tag_id: int | None = Query(None, description="Filter by tag ID"),
+    limit: int = Query(50, ge=1, le=200, description="Number of items per page"),
+    offset: int = Query(0, ge=0, description="Number of items to skip"),
 ):
     """
-    Retrieves a list of all channels with optional filtering.
+    Retrieves a list of all channels with optional filtering and pagination.
 
     Filters:
     - is_favorited: Show only favorited channels
     - folder_id: Show only channels in a specific folder (use 0 for channels with no folder)
     - tag_id: Show only channels with a specific tag
+
+    Pagination:
+    - limit: Number of items per page (default: 50, max: 200)
+    - offset: Number of items to skip
     """
     return await channel_service.get_all_channels(
         db_session=db_session,
         is_favorited=is_favorited,
         folder_id=folder_id,
         tag_id=tag_id,
+        limit=limit,
+        offset=offset,
     )
 
 

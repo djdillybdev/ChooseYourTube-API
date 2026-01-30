@@ -2,10 +2,12 @@ import asyncio
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.schemas.base import PaginatedResponse
+
 from ..clients.youtube import YouTubeAPI
 from ..db.crud import crud_channel
 from ..db.models.channel import Channel
-from ..schemas.channel import ChannelCreate, ChannelUpdate
+from ..schemas.channel import ChannelCreate, ChannelUpdate, ChannelOut
 from .video_service import refresh_latest_channel_videos
 
 
@@ -32,18 +34,22 @@ async def get_all_channels(
     is_favorited: bool | None = None,
     folder_id: int | None = None,
     tag_id: int | None = None,
-) -> list[Channel]:
+    limit: int = 50,
+    offset: int = 0,
+) -> PaginatedResponse[ChannelOut]:
     """
-    Retrieves all channels with optional filtering.
+    Retrieves all channels with optional filtering and pagination.
 
     Args:
         db_session: Database session
         is_favorited: Filter by favorited status
         folder_id: Filter by folder ID (use 0 for root/no folder)
         tag_id: Filter by tag ID
+        limit: Number of items per page
+        offset: Number of items to skip
 
     Returns:
-        List of Channel instances matching the filters
+        Dictionary with pagination metadata and channel items
     """
     # Build filter kwargs
     filters = {}
@@ -53,14 +59,27 @@ async def get_all_channels(
         # Support folder_id=0 to mean "no folder" (None in database)
         filters["folder_id"] = None if folder_id == 0 else folder_id
 
-    # Get channels from CRUD layer
-    channels = await crud_channel.get_channels(db_session, **filters)
+    # Get ALL channels matching database filters first (no limit/offset yet)
+    all_channels = await crud_channel.get_channels(db_session, **filters)
 
     # Post-filter for tag_id (since tags are a relationship, not a direct field)
     if tag_id is not None:
-        channels = [c for c in channels if any(tag.id == tag_id for tag in c.tags)]
+        all_channels = [c for c in all_channels if any(tag.id == tag_id for tag in c.tags)]
 
-    return channels
+    # Get total count after all filters
+    total = len(all_channels)
+
+    # Apply pagination manually
+    paginated_channels = all_channels[offset : offset + limit]
+
+    # Build pagination response
+    return PaginatedResponse[ChannelOut](
+        total=total,
+        items=paginated_channels,
+        limit=limit,
+        offset=offset,
+        has_more=  offset + len(paginated_channels) < total,
+    )
 
 
 async def refresh_channel_by_id(

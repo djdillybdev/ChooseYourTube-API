@@ -18,7 +18,7 @@ class TestVideosRouter:
         response = test_client.get("/videos/")
 
         assert response.status_code == 200
-        assert response.json() == []
+        assert response.json()["total"] == 0
 
     async def test_list_videos_with_data(self, test_client, db_session):
         """Test GET /videos/ returns list of videos."""
@@ -62,6 +62,7 @@ class TestVideosRouter:
 
         assert response.status_code == 200
         data = response.json()
+        data = data["items"]
         assert len(data) == 2
 
     async def test_list_videos_with_pagination(self, test_client, db_session):
@@ -97,12 +98,14 @@ class TestVideosRouter:
         response = test_client.get("/videos/?limit=2")
         assert response.status_code == 200
         data = response.json()
+        data = data["items"]
         assert len(data) == 2
 
         # Test with offset
         response = test_client.get("/videos/?limit=2&offset=2")
         assert response.status_code == 200
         data = response.json()
+        data = data["items"]
         assert len(data) == 2
 
     async def test_list_videos_pagination_limits(self, test_client, db_session):

@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Query, status
+
+from app.schemas.base import PaginatedResponse
 from ..dependencies import DBSessionDep
 from ..schemas.video import VideoOut, VideoUpdate
 from ..services import video_service
@@ -6,7 +8,7 @@ from ..services import video_service
 router = APIRouter(prefix="/videos", tags=["Videos"])
 
 
-@router.get("/", response_model=list[VideoOut])
+@router.get("/", response_model=PaginatedResponse[VideoOut])
 async def list_videos(
     db_session: DBSessionDep,
     limit: int = Query(50, ge=1, le=200),

@@ -9,9 +9,11 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
+from app.schemas.base import PaginatedResponse
+
 from ..db.crud import crud_tag
 from ..db.models.tag import Tag
-from ..schemas.tag import TagCreate, TagUpdate
+from ..schemas.tag import TagCreate, TagUpdate, TagOut
 
 
 class TaggableEntity(Protocol):
@@ -77,7 +79,7 @@ async def get_all_tags(
     db_session: AsyncSession,
     limit: int | None = None,
     offset: int = 0
-) -> list[Tag]:
+) -> PaginatedResponse[TagOut]:
     """
     Get all tags with pagination.
 
@@ -89,8 +91,16 @@ async def get_all_tags(
     Returns:
         List of Tag instances
     """
-    return await crud_tag.get_tags(
+    tags = crud_tag.get_tags(
         db_session, limit=limit, offset=offset, order_by="name", order_direction="asc"
+    )
+
+    return PaginatedResponse[TagOut](
+        total=len(tags),
+        items=tags,
+        limit=limit,
+        offset=offset,
+        has_more=offset + len(tags) < len(tags),
     )
 
 

@@ -5,6 +5,8 @@ Pydantic schemas for Tag entity validation and serialization.
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.base import BaseSchema
+
 
 # --- Create Schema ---
 
@@ -41,7 +43,7 @@ class TagUpdate(BaseModel):
 # --- Output Schema ---
 
 
-class TagOut(BaseModel):
+class TagOut(BaseSchema):
     """Schema for tag output."""
 
     id: int

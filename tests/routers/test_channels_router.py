@@ -18,7 +18,7 @@ class TestChannelsRouter:
         response = test_client.get("/channels/")
 
         assert response.status_code == 200
-        assert response.json() == []
+        assert response.json()["total"] == 0
 
     async def test_read_all_channels_with_data(self, test_client, db_session):
         """Test GET /channels/ returns list of channels."""
@@ -46,6 +46,7 @@ class TestChannelsRouter:
 
         assert response.status_code == 200
         data = response.json()
+        data = data["items"]
         assert len(data) == 2
         assert data[0]["id"] == "UC_test_1"
         assert data[1]["id"] == "UC_test_2"

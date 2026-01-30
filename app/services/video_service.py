@@ -5,8 +5,10 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from datetime import datetime, timedelta
+
+from app.schemas.base import PaginatedResponse
 from ..core.config import settings
-from ..schemas.video import VideoCreate, VideoUpdate
+from ..schemas.video import VideoCreate, VideoUpdate, VideoOut
 from ..db.session import sessionmanager
 from ..db.crud import crud_channel, crud_video
 from ..db.models.video import Video
@@ -294,7 +296,7 @@ async def get_all_videos(
     tag_id: int | None = None,
     published_after: str | None = None,
     published_before: str | None = None,
-) -> list[Video]:
+) -> PaginatedResponse[VideoOut]:
     """
     Get all videos with optional filtering.
 
@@ -345,7 +347,13 @@ async def get_all_videos(
             before_dt = datetime.fromisoformat(published_before.replace('Z', '+00:00'))
             videos = [v for v in videos if v.published_at <= before_dt]
 
-    return videos
+    return PaginatedResponse[VideoOut](
+        total=len(videos),
+        items=videos,
+        limit=limit,
+        offset=offset,
+        has_more=offset + len(videos) < len(videos),
+    )
 
 
 async def get_videos_for_channel(

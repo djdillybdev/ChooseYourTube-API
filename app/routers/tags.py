@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Query, status
+
+from app.schemas.base import PaginatedResponse
 from ..dependencies import DBSessionDep
 from ..schemas.tag import TagCreate, TagUpdate, TagOut
 from ..schemas.video import VideoOut
@@ -8,7 +10,7 @@ from ..services import tag_service
 router = APIRouter(prefix="/tags", tags=["Tags"])
 
 
-@router.get("/", response_model=list[TagOut])
+@router.get("/", response_model=PaginatedResponse[TagOut])
 async def list_tags(
     db_session: DBSessionDep,
     limit: int = Query(50, ge=1, le=200),
