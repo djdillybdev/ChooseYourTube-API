@@ -17,8 +17,6 @@ from app.services.video_service import (
     create_and_update_videos,
 )
 from app.db.models.channel import Channel
-from app.db.models.video import Video
-from app.schemas.video import VideoCreate
 
 
 @pytest_asyncio.fixture

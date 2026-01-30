@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from datetime import datetime, timezone
 
-from sqlalchemy import String, DateTime, ForeignKey
+from sqlalchemy import String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..base import Base
 from .association_tables import channel_tags, video_tags

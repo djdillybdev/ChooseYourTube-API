@@ -7,7 +7,7 @@ for handling database connections and sessions.
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import DatabaseSessionManager, get_db_session
 
@@ -22,7 +22,7 @@ class TestDatabaseSessionManagerInit:
                 mock_engine = MagicMock()
                 mock_create_engine.return_value = mock_engine
 
-                manager = DatabaseSessionManager(
+                DatabaseSessionManager(
                     "sqlite+aiosqlite:///:memory:", engine_kwargs={"echo": True}
                 )
 
@@ -40,7 +40,7 @@ class TestDatabaseSessionManagerInit:
         """Test initialization with default empty engine_kwargs."""
         with patch("app.db.session.create_async_engine") as mock_create_engine:
             with patch("app.db.session.async_sessionmaker"):
-                manager = DatabaseSessionManager("sqlite+aiosqlite:///:memory:")
+                DatabaseSessionManager("sqlite+aiosqlite:///:memory:")
 
                 # Verify engine was created with no extra kwargs
                 mock_create_engine.assert_called_once_with(
@@ -130,7 +130,7 @@ class TestDatabaseSessionManagerConnect:
 
                 # Raise exception inside context
                 with pytest.raises(ValueError):
-                    async with manager.connect() as conn:
+                    async with manager.connect():
                         raise ValueError("Test error")
 
                 # Verify rollback was called
@@ -187,7 +187,7 @@ class TestDatabaseSessionManagerSession:
 
                 # Raise exception inside context
                 with pytest.raises(ValueError):
-                    async with manager.session() as session:
+                    async with manager.session():
                         raise ValueError("Test error")
 
                 # Verify rollback was called
@@ -209,7 +209,7 @@ class TestDatabaseSessionManagerSession:
                 manager = DatabaseSessionManager("sqlite+aiosqlite:///:memory:")
 
                 # Use context manager normally
-                async with manager.session() as session:
+                async with manager.session():
                     pass  # Normal exit
 
                 # Verify session.close() was called

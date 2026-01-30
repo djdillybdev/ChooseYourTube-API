@@ -5,8 +5,6 @@ Tests create() and delete() methods from crud_folder.
 """
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.exc import IntegrityError
 from app.db.crud.crud_folder import create_folder, delete_folder, get_folders
 from app.db.models.folder import Folder
 

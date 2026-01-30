@@ -275,7 +275,6 @@ class TestAssertNotCycleProperties:
 
         # Create multiple separate trees
         for root_idx in range(root_count):
-            root_id = folder_id
             folders_dict[folder_id] = Folder(
                 id=folder_id, name=f"Root {root_idx}", parent_id=None
             )

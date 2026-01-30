@@ -9,7 +9,6 @@ import pytest
 import pytest_asyncio
 from fastapi import HTTPException
 from unittest.mock import patch, AsyncMock
-from datetime import datetime, timezone
 
 from app.services.channel_service import (
     create_channel,

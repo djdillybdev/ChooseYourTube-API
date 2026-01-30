@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.tag import Tag
 from .crud_base import (
     base_get,
-    base_update,
     _validate_pagination,
     _validate_order_by_field,
 )

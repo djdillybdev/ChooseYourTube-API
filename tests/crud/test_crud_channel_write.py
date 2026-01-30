@@ -6,7 +6,7 @@ Tests create_channel(), delete_channel(), and delete_all_channels() methods.
 
 import pytest
 import pytest_asyncio
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from app.db.crud.crud_channel import (
     create_channel,

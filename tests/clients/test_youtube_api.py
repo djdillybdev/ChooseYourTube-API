@@ -7,7 +7,6 @@ with the YouTube Data API, including OAuth and API key authentication.
 
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
-from contextlib import contextmanager
 
 from app.clients.youtube import YouTubeAPI, YouTubeAPIManager, get_youtube_api
 
@@ -352,9 +351,9 @@ class TestYouTubeAPIManager:
             manager.init_client()  # Initialize first time
 
             # Use context manager multiple times
-            with manager.get_client() as client1:
+            with manager.get_client():
                 pass
-            with manager.get_client() as client2:
+            with manager.get_client():
                 pass
 
             # Should only be called once (reused)

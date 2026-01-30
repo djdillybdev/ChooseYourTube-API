@@ -5,8 +5,7 @@ Tests create_tag(), get_or_create_tag(), delete_tag(), and delete_all_tags() met
 """
 
 import pytest
-import pytest_asyncio
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from app.db.crud.crud_tag import (
     create_tag,

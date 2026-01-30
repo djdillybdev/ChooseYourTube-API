@@ -48,7 +48,7 @@ class TestUpdateChannelWithTags:
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
 
         payload = ChannelUpdate(tag_ids=tag_ids)
-        updated_channel = await update_channel(sample_channel.id, payload, db_session)
+        await update_channel(sample_channel.id, payload, db_session)
 
         # Verify tags were added
         refreshed = await get_channels(db_session, id=sample_channel.id, first=True)
@@ -127,7 +127,7 @@ class TestUpdateChannelWithTags:
         tag_ids = [sample_tags[0].id, sample_tags[0].id, sample_tags[1].id]
 
         payload = ChannelUpdate(tag_ids=tag_ids)
-        updated_channel = await update_channel(sample_channel.id, payload, db_session)
+        await update_channel(sample_channel.id, payload, db_session)
 
         # Verify only unique tags were added
         refreshed = await get_channels(db_session, id=sample_channel.id, first=True)

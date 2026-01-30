@@ -12,7 +12,6 @@ from app.services.video_service import update_video
 from app.db.crud.crud_video import get_videos, create_videos_bulk
 from app.db.crud.crud_channel import create_channel
 from app.db.crud.crud_tag import create_tag, get_tags
-from app.db.models.video import Video
 from app.db.models.channel import Channel
 from app.db.models.tag import Tag
 from app.schemas.video import VideoCreate, VideoUpdate
@@ -67,7 +66,7 @@ class TestUpdateVideoWithTags:
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
 
         payload = VideoUpdate(tag_ids=tag_ids)
-        updated_video = await update_video(sample_video.id, payload, db_session)
+        await update_video(sample_video.id, payload, db_session)
 
         # Verify tags were added
         refreshed = await get_videos(db_session, id=sample_video.id, first=True)
@@ -146,7 +145,7 @@ class TestUpdateVideoWithTags:
         tag_ids = [sample_tags[0].id, sample_tags[0].id, sample_tags[1].id]
 
         payload = VideoUpdate(tag_ids=tag_ids)
-        updated_video = await update_video(sample_video.id, payload, db_session)
+        await update_video(sample_video.id, payload, db_session)
 
         # Verify only unique tags were added
         refreshed = await get_videos(db_session, id=sample_video.id, first=True)
