@@ -17,7 +17,7 @@ class TestYouTubeAPIInit:
 
     def test_init_with_api_key(self):
         """Test initialization with API key only."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
             mock_youtube = MagicMock()
             mock_build.return_value = mock_youtube
 
@@ -31,8 +31,12 @@ class TestYouTubeAPIInit:
 
     def test_init_with_client_secrets_oauth(self):
         """Test initialization with OAuth client secrets."""
-        with patch('app.clients.youtube.google_auth_oauthlib.flow.InstalledAppFlow') as mock_flow_cls:
-            with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch(
+            "app.clients.youtube.google_auth_oauthlib.flow.InstalledAppFlow"
+        ) as mock_flow_cls:
+            with patch(
+                "app.clients.youtube.googleapiclient.discovery.build"
+            ) as mock_build:
                 # Mock OAuth flow
                 mock_flow = MagicMock()
                 mock_credentials = MagicMock()
@@ -45,13 +49,13 @@ class TestYouTubeAPIInit:
 
                 client = YouTubeAPI(
                     client_secrets_file="client_secrets.json",
-                    scopes=["https://www.googleapis.com/auth/youtube.readonly"]
+                    scopes=["https://www.googleapis.com/auth/youtube.readonly"],
                 )
 
                 # Verify OAuth flow was used
                 mock_flow_cls.from_client_secrets_file.assert_called_once_with(
                     "client_secrets.json",
-                    scopes=["https://www.googleapis.com/auth/youtube.readonly"]
+                    scopes=["https://www.googleapis.com/auth/youtube.readonly"],
                 )
                 mock_flow.run_console.assert_called_once()
 
@@ -63,8 +67,10 @@ class TestYouTubeAPIInit:
 
     def test_init_with_client_secrets_default_scopes(self):
         """Test that OAuth defaults to readonly scope if not provided."""
-        with patch('app.clients.youtube.google_auth_oauthlib.flow.InstalledAppFlow') as mock_flow_cls:
-            with patch('app.clients.youtube.googleapiclient.discovery.build'):
+        with patch(
+            "app.clients.youtube.google_auth_oauthlib.flow.InstalledAppFlow"
+        ) as mock_flow_cls:
+            with patch("app.clients.youtube.googleapiclient.discovery.build"):
                 mock_flow = MagicMock()
                 mock_flow_cls.from_client_secrets_file.return_value = mock_flow
 
@@ -72,7 +78,9 @@ class TestYouTubeAPIInit:
 
                 # Verify default scope was used
                 call_args = mock_flow_cls.from_client_secrets_file.call_args
-                assert call_args[1]['scopes'] == ["https://www.googleapis.com/auth/youtube.readonly"]
+                assert call_args[1]["scopes"] == [
+                    "https://www.googleapis.com/auth/youtube.readonly"
+                ]
 
     def test_init_without_credentials_raises(self):
         """Test that initialization without credentials raises ValueError."""
@@ -83,16 +91,19 @@ class TestYouTubeAPIInit:
 
     def test_init_with_both_credentials_prefers_oauth(self):
         """Test that OAuth is preferred when both credentials are provided."""
-        with patch('app.clients.youtube.google_auth_oauthlib.flow.InstalledAppFlow') as mock_flow_cls:
-            with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch(
+            "app.clients.youtube.google_auth_oauthlib.flow.InstalledAppFlow"
+        ) as mock_flow_cls:
+            with patch(
+                "app.clients.youtube.googleapiclient.discovery.build"
+            ) as mock_build:
                 mock_flow = MagicMock()
                 mock_credentials = MagicMock()
                 mock_flow.run_console.return_value = mock_credentials
                 mock_flow_cls.from_client_secrets_file.return_value = mock_flow
 
                 YouTubeAPI(
-                    client_secrets_file="client_secrets.json",
-                    api_key="test_api_key"
+                    client_secrets_file="client_secrets.json", api_key="test_api_key"
                 )
 
                 # Verify OAuth was used (not API key)
@@ -106,7 +117,7 @@ class TestYouTubeAPISyncMethods:
 
     def test_channels_list_executes_request(self):
         """Test that channels_list executes the API request."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
             # Mock the chained API calls: youtube.channels().list().execute()
             mock_execute = MagicMock(return_value={"items": []})
             mock_list = MagicMock(return_value=MagicMock(execute=mock_execute))
@@ -125,7 +136,7 @@ class TestYouTubeAPISyncMethods:
 
     def test_playlist_items_list_executes_request(self):
         """Test that playlist_items_list executes the API request."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
             mock_execute = MagicMock(return_value={"items": []})
             mock_list = MagicMock(return_value=MagicMock(execute=mock_execute))
             mock_playlist_items = MagicMock(return_value=MagicMock(list=mock_list))
@@ -142,7 +153,7 @@ class TestYouTubeAPISyncMethods:
 
     def test_videos_list_executes_request(self):
         """Test that videos_list executes the API request."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
             mock_execute = MagicMock(return_value={"items": []})
             mock_list = MagicMock(return_value=MagicMock(execute=mock_execute))
             mock_videos = MagicMock(return_value=MagicMock(list=mock_list))
@@ -164,8 +175,8 @@ class TestYouTubeAPIAsyncMethods:
 
     async def test_channels_list_async_wraps_in_thread(self):
         """Test that channels_list_async uses asyncio.to_thread."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
-            with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
+            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
                 mock_to_thread.return_value = {"items": []}
 
                 # Setup mock chain
@@ -184,8 +195,8 @@ class TestYouTubeAPIAsyncMethods:
 
     async def test_playlist_items_list_async_wraps_in_thread(self):
         """Test that playlist_items_list_async uses asyncio.to_thread."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
-            with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
+            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
                 mock_to_thread.return_value = {"items": []}
 
                 mock_execute = MagicMock()
@@ -202,8 +213,8 @@ class TestYouTubeAPIAsyncMethods:
 
     async def test_videos_list_async_wraps_in_thread(self):
         """Test that videos_list_async uses asyncio.to_thread."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
-            with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
+            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
                 mock_to_thread.return_value = {"items": []}
 
                 mock_execute = MagicMock()
@@ -224,7 +235,7 @@ class TestYouTubeAPIGetChannelInfo:
 
     def test_get_channel_info_by_channel_id(self):
         """Test getting channel info by channel ID."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
             mock_execute = MagicMock(return_value={"items": [{"id": "UC123"}]})
             mock_list = MagicMock(return_value=MagicMock(execute=mock_execute))
             mock_channels = MagicMock(return_value=MagicMock(list=mock_list))
@@ -237,12 +248,12 @@ class TestYouTubeAPIGetChannelInfo:
             # Verify list was called with channel_id
             mock_list.assert_called_once()
             call_kwargs = mock_list.call_args[1]
-            assert call_kwargs['id'] == "UC123"
+            assert call_kwargs["id"] == "UC123"
             assert result == {"items": [{"id": "UC123"}]}
 
     def test_get_channel_info_by_handle(self):
         """Test getting channel info by handle."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
             mock_execute = MagicMock(return_value={"items": [{"handle": "@test"}]})
             mock_list = MagicMock(return_value=MagicMock(execute=mock_execute))
             mock_channels = MagicMock(return_value=MagicMock(list=mock_list))
@@ -254,12 +265,12 @@ class TestYouTubeAPIGetChannelInfo:
 
             # Verify list was called with forHandle
             call_kwargs = mock_list.call_args[1]
-            assert call_kwargs['forHandle'] == "@test"
+            assert call_kwargs["forHandle"] == "@test"
             assert result == {"items": [{"handle": "@test"}]}
 
     def test_get_channel_info_by_username(self):
         """Test getting channel info by username (legacy) with handle."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
             mock_execute = MagicMock(return_value={"items": [{"username": "testuser"}]})
             mock_list = MagicMock(return_value=MagicMock(execute=mock_execute))
             mock_channels = MagicMock(return_value=MagicMock(list=mock_list))
@@ -272,13 +283,13 @@ class TestYouTubeAPIGetChannelInfo:
 
             # Verify list was called with forUsername
             call_kwargs = mock_list.call_args[1]
-            assert call_kwargs['forUsername'] == "testuser"
-            assert call_kwargs['forHandle'] == "@testuser"
+            assert call_kwargs["forUsername"] == "testuser"
+            assert call_kwargs["forHandle"] == "@testuser"
             assert result == {"items": [{"username": "testuser"}]}
 
     def test_get_channel_info_no_params_raises(self):
         """Test that get_channel_info without params raises ValueError."""
-        with patch('app.clients.youtube.googleapiclient.discovery.build') as mock_build:
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
             mock_youtube = MagicMock()
             mock_build.return_value = mock_youtube
 
@@ -295,7 +306,7 @@ class TestYouTubeAPIManager:
 
     def test_init_client_creates_youtube_api(self):
         """Test that init_client creates a YouTubeAPI instance."""
-        with patch('app.clients.youtube.YouTubeAPI') as mock_youtube_api_cls:
+        with patch("app.clients.youtube.YouTubeAPI") as mock_youtube_api_cls:
             mock_client = MagicMock()
             mock_youtube_api_cls.return_value = mock_client
 
@@ -317,7 +328,7 @@ class TestYouTubeAPIManager:
 
     def test_get_client_lazy_initialization(self):
         """Test that get_client initializes client lazily."""
-        with patch('app.clients.youtube.YouTubeAPI') as mock_youtube_api_cls:
+        with patch("app.clients.youtube.YouTubeAPI") as mock_youtube_api_cls:
             mock_client = MagicMock()
             mock_youtube_api_cls.return_value = mock_client
 
@@ -333,7 +344,7 @@ class TestYouTubeAPIManager:
 
     def test_get_client_reuses_existing_client(self):
         """Test that get_client reuses existing client."""
-        with patch('app.clients.youtube.YouTubeAPI') as mock_youtube_api_cls:
+        with patch("app.clients.youtube.YouTubeAPI") as mock_youtube_api_cls:
             mock_client = MagicMock()
             mock_youtube_api_cls.return_value = mock_client
 
@@ -355,7 +366,7 @@ class TestGetYouTubeApiDependency:
 
     def test_get_youtube_api_returns_client(self):
         """Test that get_youtube_api returns initialized client."""
-        with patch('app.clients.youtube.youtube_api_manager') as mock_manager:
+        with patch("app.clients.youtube.youtube_api_manager") as mock_manager:
             mock_client = MagicMock()
             mock_manager._client = mock_client
 
@@ -365,7 +376,7 @@ class TestGetYouTubeApiDependency:
 
     def test_get_youtube_api_initializes_if_needed(self):
         """Test that get_youtube_api initializes manager if client is None."""
-        with patch('app.clients.youtube.youtube_api_manager') as mock_manager:
+        with patch("app.clients.youtube.youtube_api_manager") as mock_manager:
             mock_manager._client = None
             mock_client = MagicMock()
             mock_manager.init_client = MagicMock()
@@ -373,6 +384,7 @@ class TestGetYouTubeApiDependency:
             # After init_client is called, set the client
             def set_client():
                 mock_manager._client = mock_client
+
             mock_manager.init_client.side_effect = set_client
 
             result = get_youtube_api()

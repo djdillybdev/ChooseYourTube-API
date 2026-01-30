@@ -8,7 +8,12 @@ import pytest
 import pytest_asyncio
 from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
-from app.db.crud.crud_channel import create_channel, delete_channel, delete_all_channels, get_channels
+from app.db.crud.crud_channel import (
+    create_channel,
+    delete_channel,
+    delete_all_channels,
+    get_channels,
+)
 from app.db.models.channel import Channel
 from app.db.models.folder import Folder
 
@@ -86,7 +91,9 @@ class TestCreateChannel:
         assert retrieved is not None
         assert retrieved.title == "Persistence Test"
 
-    async def test_create_channel_with_duplicate_id_raises_integrity_error(self, db_session):
+    async def test_create_channel_with_duplicate_id_raises_integrity_error(
+        self, db_session
+    ):
         """Creating a channel with duplicate ID should raise IntegrityError."""
         channel1 = Channel(
             id="UC_duplicate",
@@ -224,7 +231,9 @@ class TestDeleteChannel:
         assert len(all_channels) == 3
 
         # Delete one
-        channel_to_delete = await get_channels(db_session, id="UC_delete_test_1", first=True)
+        channel_to_delete = await get_channels(
+            db_session, id="UC_delete_test_1", first=True
+        )
         await delete_channel(db_session, channel_to_delete)
 
         # Verify we now have 2 channels
@@ -324,14 +333,30 @@ class TestDeleteAllChannels:
         count2 = await delete_all_channels(db_session)
         assert count2 == 0
 
-    async def test_delete_all_channels_removes_all_types(self, db_session, sample_folder):
+    async def test_delete_all_channels_removes_all_types(
+        self, db_session, sample_folder
+    ):
         """Delete all channels removes favorited and folder-assigned channels."""
         # Create diverse channels
         channels_data = [
             ("UC_diverse_001", "Regular Channel", "@regular", "UU_001", False, None),
             ("UC_diverse_002", "Favorited", "@favorited", "UU_002", True, None),
-            ("UC_diverse_003", "In Folder", "@infolder", "UU_003", False, sample_folder.id),
-            ("UC_diverse_004", "Fav + Folder", "@favfolder", "UU_004", True, sample_folder.id),
+            (
+                "UC_diverse_003",
+                "In Folder",
+                "@infolder",
+                "UU_003",
+                False,
+                sample_folder.id,
+            ),
+            (
+                "UC_diverse_004",
+                "Fav + Folder",
+                "@favfolder",
+                "UU_004",
+                True,
+                sample_folder.id,
+            ),
         ]
 
         for channel_id, title, handle, playlist_id, is_fav, folder_id in channels_data:

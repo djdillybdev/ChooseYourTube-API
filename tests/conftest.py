@@ -18,7 +18,9 @@ from fastapi.testclient import TestClient
 
 # Set test environment variables before any app imports
 # This prevents Settings validation errors during test collection
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/test_db")
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/test_db"
+)
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("API_ORIGIN", "http://localhost:3000")
 os.environ.setdefault("YOUTUBE_API_KEY", "test_api_key_for_testing")
@@ -64,6 +66,7 @@ def mock_arq_redis():
 
 
 # Database Testing Fixtures
+
 
 @pytest_asyncio.fixture
 async def test_engine():
@@ -112,6 +115,7 @@ async def db_session(test_engine):
 
 # FastAPI TestClient Fixtures
 
+
 @pytest.fixture
 def test_client(db_session, mock_youtube_api, mock_arq_redis):
     """
@@ -122,6 +126,7 @@ def test_client(db_session, mock_youtube_api, mock_arq_redis):
     - YouTube API uses mock client
     - Redis client uses mock
     """
+
     # Create async generator override for db_session
     async def override_get_db_session():
         yield db_session
@@ -140,10 +145,12 @@ def test_client(db_session, mock_youtube_api, mock_arq_redis):
 
 # YouTube API Response Fixtures
 
+
 @pytest.fixture
 def sample_channel_response():
     """Sample YouTube channel info response for testing."""
     from tests.fixtures.youtube_responses import mock_channel_info_response
+
     return mock_channel_info_response()
 
 
@@ -151,6 +158,7 @@ def sample_channel_response():
 def sample_playlist_items_response():
     """Sample YouTube playlist items response for testing."""
     from tests.fixtures.youtube_responses import mock_playlist_items_response
+
     return mock_playlist_items_response()
 
 
@@ -158,10 +166,12 @@ def sample_playlist_items_response():
 def sample_videos_list_response():
     """Sample YouTube videos list response for testing."""
     from tests.fixtures.youtube_responses import mock_videos_list_response
+
     return mock_videos_list_response()
 
 
 # Worker Test Fixtures
+
 
 @pytest.fixture
 def mock_sessionmanager():
@@ -172,7 +182,7 @@ def mock_sessionmanager():
     """
     from unittest.mock import patch, AsyncMock
 
-    with patch('app.worker.sessionmanager') as mock_sm:
+    with patch("app.worker.sessionmanager") as mock_sm:
         mock_session = AsyncMock()
         mock_sm.session.return_value.__aenter__.return_value = mock_session
         yield mock_sm
@@ -187,7 +197,7 @@ def mock_arq_pool():
     """
     from unittest.mock import patch, AsyncMock
 
-    with patch('arq.create_pool') as mock_create:
+    with patch("arq.create_pool") as mock_create:
         mock_pool = AsyncMock()
         mock_pool.enqueue_job = AsyncMock()
         mock_create.return_value = mock_pool
@@ -195,6 +205,7 @@ def mock_arq_pool():
 
 
 # Video Service Test Fixtures
+
 
 @pytest.fixture
 def mock_feedparser():
@@ -205,7 +216,7 @@ def mock_feedparser():
     """
     from unittest.mock import patch
 
-    with patch('feedparser.parse') as mock_parse:
+    with patch("feedparser.parse") as mock_parse:
         yield mock_parse
 
 
@@ -220,19 +231,19 @@ def sample_rss_feed():
     feed = MagicMock()
     feed.entries = [
         MagicMock(
-            yt_videoid='rss_video_1',
-            link='https://youtube.com/watch?v=rss_video_1',
-            title='RSS Video 1'
+            yt_videoid="rss_video_1",
+            link="https://youtube.com/watch?v=rss_video_1",
+            title="RSS Video 1",
         ),
         MagicMock(
-            yt_videoid='rss_video_2',
-            link='https://youtube.com/watch?v=rss_video_2',
-            title='RSS Video 2'
+            yt_videoid="rss_video_2",
+            link="https://youtube.com/watch?v=rss_video_2",
+            title="RSS Video 2",
         ),
         MagicMock(
-            yt_videoid='rss_video_3',
-            link='https://youtube.com/shorts/rss_video_3',  # This is a short
-            title='RSS Short 3'
+            yt_videoid="rss_video_3",
+            link="https://youtube.com/shorts/rss_video_3",  # This is a short
+            title="RSS Short 3",
         ),
     ]
     return feed
@@ -246,21 +257,21 @@ def sample_paginated_playlist_response():
     Returns a mock response with items and nextPageToken.
     """
     return {
-        'items': [
+        "items": [
             {
-                'snippet': {
-                    'title': 'Video 1',
-                    'resourceId': {'videoId': 'paginated_video_1'}
+                "snippet": {
+                    "title": "Video 1",
+                    "resourceId": {"videoId": "paginated_video_1"},
                 },
-                'contentDetails': {'videoId': 'paginated_video_1'}
+                "contentDetails": {"videoId": "paginated_video_1"},
             },
             {
-                'snippet': {
-                    'title': 'Video 2',
-                    'resourceId': {'videoId': 'paginated_video_2'}
+                "snippet": {
+                    "title": "Video 2",
+                    "resourceId": {"videoId": "paginated_video_2"},
                 },
-                'contentDetails': {'videoId': 'paginated_video_2'}
+                "contentDetails": {"videoId": "paginated_video_2"},
             },
         ],
-        'nextPageToken': 'next_page_token_123'
+        "nextPageToken": "next_page_token_123",
     }

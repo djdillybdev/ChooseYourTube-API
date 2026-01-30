@@ -27,56 +27,20 @@ async def sample_folders(db_session):
     folders = [
         # Root folders
         Folder(
-            id=1,
-            name="Programming",
-            parent_id=None,
-            created_at=now - timedelta(days=1)
+            id=1, name="Programming", parent_id=None, created_at=now - timedelta(days=1)
         ),
         Folder(
-            id=2,
-            name="Databases",
-            parent_id=None,
-            created_at=now - timedelta(days=2)
+            id=2, name="Databases", parent_id=None, created_at=now - timedelta(days=2)
         ),
-        Folder(
-            id=3,
-            name="Design",
-            parent_id=None,
-            created_at=now - timedelta(days=3)
-        ),
+        Folder(id=3, name="Design", parent_id=None, created_at=now - timedelta(days=3)),
         # Children of Programming (id=1)
-        Folder(
-            id=4,
-            name="Frontend",
-            parent_id=1,
-            created_at=now - timedelta(days=4)
-        ),
-        Folder(
-            id=5,
-            name="Backend",
-            parent_id=1,
-            created_at=now - timedelta(days=5)
-        ),
+        Folder(id=4, name="Frontend", parent_id=1, created_at=now - timedelta(days=4)),
+        Folder(id=5, name="Backend", parent_id=1, created_at=now - timedelta(days=5)),
         # Children of Frontend (id=4)
-        Folder(
-            id=6,
-            name="React",
-            parent_id=4,
-            created_at=now - timedelta(days=6)
-        ),
-        Folder(
-            id=7,
-            name="Vue",
-            parent_id=4,
-            created_at=now - timedelta(days=7)
-        ),
+        Folder(id=6, name="React", parent_id=4, created_at=now - timedelta(days=6)),
+        Folder(id=7, name="Vue", parent_id=4, created_at=now - timedelta(days=7)),
         # Child of Databases (id=2)
-        Folder(
-            id=8,
-            name="SQL",
-            parent_id=2,
-            created_at=now - timedelta(days=8)
-        ),
+        Folder(id=8, name="SQL", parent_id=2, created_at=now - timedelta(days=8)),
     ]
 
     for folder in folders:
@@ -87,6 +51,7 @@ async def sample_folders(db_session):
 
 
 # Basic Filtering Tests
+
 
 @pytest.mark.asyncio
 class TestGetFoldersBasicFiltering:
@@ -101,7 +66,9 @@ class TestGetFoldersBasicFiltering:
         assert result.id == 1
         assert result.name == "Programming"
 
-    async def test_filter_by_id_returns_list_when_first_false(self, db_session, sample_folders):
+    async def test_filter_by_id_returns_list_when_first_false(
+        self, db_session, sample_folders
+    ):
         """Should return a list with one folder when first=False."""
         results = await get_folders(db_session, id=1, first=False)
 
@@ -137,6 +104,7 @@ class TestGetFoldersBasicFiltering:
 
 
 # Hierarchical Query Tests
+
 
 @pytest.mark.asyncio
 class TestGetFoldersHierarchical:
@@ -175,6 +143,7 @@ class TestGetFoldersHierarchical:
 
 # Pagination Tests
 
+
 @pytest.mark.asyncio
 class TestGetFoldersPagination:
     """Tests for limit and offset parameters."""
@@ -201,12 +170,7 @@ class TestGetFoldersPagination:
     async def test_limit_and_offset_with_filters(self, db_session, sample_folders):
         """Should apply pagination after filtering."""
         # Get root folders with pagination
-        results = await get_folders(
-            db_session,
-            parent_id=None,
-            limit=2,
-            offset=0
-        )
+        results = await get_folders(db_session, parent_id=None, limit=2, offset=0)
 
         assert len(results) == 2
         assert all(f.parent_id is None for f in results)
@@ -226,50 +190,35 @@ class TestGetFoldersPagination:
 
 # Ordering Tests
 
+
 @pytest.mark.asyncio
 class TestGetFoldersOrdering:
     """Tests for order_by parameter."""
 
     async def test_order_by_name_asc(self, db_session, sample_folders):
         """Should order alphabetically by name (A-Z)."""
-        results = await get_folders(
-            db_session,
-            order_by="name",
-            order_direction="asc"
-        )
+        results = await get_folders(db_session, order_by="name", order_direction="asc")
 
         names = [f.name for f in results]
         assert names == sorted(names)
 
     async def test_order_by_name_desc(self, db_session, sample_folders):
         """Should order alphabetically by name (Z-A)."""
-        results = await get_folders(
-            db_session,
-            order_by="name",
-            order_direction="desc"
-        )
+        results = await get_folders(db_session, order_by="name", order_direction="desc")
 
         names = [f.name for f in results]
         assert names == sorted(names, reverse=True)
 
     async def test_order_by_id_asc(self, db_session, sample_folders):
         """Should order by ID ascending."""
-        results = await get_folders(
-            db_session,
-            order_by="id",
-            order_direction="asc"
-        )
+        results = await get_folders(db_session, order_by="id", order_direction="asc")
 
         ids = [f.id for f in results]
         assert ids == sorted(ids)
 
     async def test_order_by_id_desc(self, db_session, sample_folders):
         """Should order by ID descending."""
-        results = await get_folders(
-            db_session,
-            order_by="id",
-            order_direction="desc"
-        )
+        results = await get_folders(db_session, order_by="id", order_direction="desc")
 
         ids = [f.id for f in results]
         assert ids == sorted(ids, reverse=True)
@@ -277,9 +226,7 @@ class TestGetFoldersOrdering:
     async def test_order_by_created_at_desc(self, db_session, sample_folders):
         """Should order by creation date, newest first."""
         results = await get_folders(
-            db_session,
-            order_by="created_at",
-            order_direction="desc"
+            db_session, order_by="created_at", order_direction="desc"
         )
 
         dates = [f.created_at for f in results]
@@ -296,6 +243,7 @@ class TestGetFoldersOrdering:
 
 # Edge Cases and Error Handling
 
+
 @pytest.mark.asyncio
 class TestGetFoldersEdgeCases:
     """Tests for edge cases and error handling."""
@@ -306,12 +254,16 @@ class TestGetFoldersEdgeCases:
     #     with pytest.raises(ValueError, match="Invalid filter field"):
     #         await get_folders(db_session, invalid_field="value")
 
-    async def test_invalid_order_by_field_raises_error(self, db_session, sample_folders):
+    async def test_invalid_order_by_field_raises_error(
+        self, db_session, sample_folders
+    ):
         """Should raise ValueError for invalid order_by field."""
         with pytest.raises(ValueError, match="Invalid order_by field"):
             await get_folders(db_session, order_by="nonexistent_field")
 
-    async def test_invalid_order_direction_raises_error(self, db_session, sample_folders):
+    async def test_invalid_order_direction_raises_error(
+        self, db_session, sample_folders
+    ):
         """Should raise ValueError for invalid order direction."""
         with pytest.raises(ValueError, match="order_direction must be 'asc' or 'desc'"):
             await get_folders(db_session, order_direction="sideways")
@@ -322,13 +274,11 @@ class TestGetFoldersEdgeCases:
 
         assert results == []
 
-    async def test_first_true_with_no_results_returns_none(self, db_session, sample_folders):
+    async def test_first_true_with_no_results_returns_none(
+        self, db_session, sample_folders
+    ):
         """Should return None when first=True and no matches found."""
-        result = await get_folders(
-            db_session,
-            id=999,
-            first=True
-        )
+        result = await get_folders(db_session, id=999, first=True)
 
         assert result is None
 
@@ -344,6 +294,7 @@ class TestGetFoldersEdgeCases:
 
 
 # Return Type Tests
+
 
 @pytest.mark.asyncio
 class TestGetFoldersReturnTypes:
@@ -372,18 +323,14 @@ class TestGetFoldersReturnTypes:
 
 # Combined Filter Tests
 
+
 @pytest.mark.asyncio
 class TestGetFoldersCombinedFilters:
     """Tests for combining multiple filters."""
 
     async def test_filter_by_name_and_parent_id(self, db_session, sample_folders):
         """Should combine name and parent_id filters."""
-        result = await get_folders(
-            db_session,
-            name="Frontend",
-            parent_id=1,
-            first=True
-        )
+        result = await get_folders(db_session, name="Frontend", parent_id=1, first=True)
 
         assert result is not None
         assert result.name == "Frontend"
@@ -394,12 +341,14 @@ class TestGetFoldersCombinedFilters:
         results = await get_folders(
             db_session,
             name="React",
-            parent_id=1  # React's parent is 4, not 1
+            parent_id=1,  # React's parent is 4, not 1
         )
 
         assert results == []
 
-    async def test_filter_with_ordering_and_pagination(self, db_session, sample_folders):
+    async def test_filter_with_ordering_and_pagination(
+        self, db_session, sample_folders
+    ):
         """Should combine filters, ordering, and pagination."""
         results = await get_folders(
             db_session,
@@ -407,7 +356,7 @@ class TestGetFoldersCombinedFilters:
             order_by="name",
             order_direction="asc",
             limit=2,
-            offset=0
+            offset=0,
         )
 
         assert len(results) == 2

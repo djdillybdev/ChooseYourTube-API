@@ -12,7 +12,7 @@ from unittest.mock import patch, AsyncMock
 from datetime import datetime, timezone
 
 from app.services.channel_service import (
-    add_new_channel,
+    create_channel,
     refresh_channel_by_id,
     _get_best_thumbnail_url,
 )
@@ -49,13 +49,11 @@ def sample_youtube_channel_response():
                         "high": {"url": "https://example.com/high.jpg"},
                         "medium": {"url": "https://example.com/medium.jpg"},
                         "default": {"url": "https://example.com/default.jpg"},
-                    }
+                    },
                 },
                 "contentDetails": {
-                    "relatedPlaylists": {
-                        "uploads": "UU_new_uploads_123"
-                    }
-                }
+                    "relatedPlaylists": {"uploads": "UU_new_uploads_123"}
+                },
             }
         ]
     }
@@ -103,20 +101,20 @@ class TestGetBestThumbnailUrl:
 
 
 @pytest.mark.asyncio
-class TestAddNewChannel:
-    """Test add_new_channel function."""
+class TestCreateChannel:
+    """Test create_channel function."""
 
-    async def test_add_new_channel_success(
+    async def test_create_channel_success(
         self, db_session, mock_youtube_api, sample_youtube_channel_response
     ):
         """Test successful channel addition."""
         # Mock asyncio.to_thread to return the YouTube response
-        with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = sample_youtube_channel_response
 
             payload = ChannelCreate(handle="@testchannel")
 
-            channel = await add_new_channel(payload, db_session, mock_youtube_api)
+            channel = await create_channel(payload, db_session, mock_youtube_api)
 
             # Verify channel was created with correct data
             assert channel.id == "UC_new_channel_123"
@@ -126,123 +124,126 @@ class TestAddNewChannel:
             assert channel.thumbnail_url == "https://example.com/high.jpg"
             assert channel.uploads_playlist_id == "UU_new_uploads_123"
 
-    async def test_add_new_channel_strips_at_symbol(
+    async def test_create_channel_strips_at_symbol(
         self, db_session, mock_youtube_api, sample_youtube_channel_response
     ):
         """Test that @ symbol is stripped from handle."""
-        with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = sample_youtube_channel_response
 
             payload = ChannelCreate(handle="@testchannel")
 
-            await add_new_channel(payload, db_session, mock_youtube_api)
+            await create_channel(payload, db_session, mock_youtube_api)
 
             # Verify get_channel_info was called with handle without @
             call_kwargs = mock_to_thread.call_args[1]
-            assert call_kwargs['handle'] == "testchannel"
+            assert call_kwargs["handle"] == "testchannel"
 
-    async def test_add_new_channel_not_found_on_youtube_raises_500(
+    async def test_create_channel_not_found_on_youtube_raises_500(
         self, db_session, mock_youtube_api
     ):
         """Test that 500 is raised when channel not found on YouTube (404 wrapped in 500)."""
         # Mock empty response from YouTube
-        with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = {"items": []}
 
             payload = ChannelCreate(handle="@nonexistent")
 
             with pytest.raises(HTTPException) as exc_info:
-                await add_new_channel(payload, db_session, mock_youtube_api)
+                await create_channel(payload, db_session, mock_youtube_api)
 
             # The code catches the 404 and re-raises as 500
             assert exc_info.value.status_code == 500
             assert "YouTube API" in exc_info.value.detail
 
-    async def test_add_new_channel_already_exists_raises_409(
+    async def test_create_channel_already_exists_raises_409(
         self, db_session, mock_youtube_api, sample_channel
     ):
         """Test that 409 is raised when channel already exists in database."""
         # Mock YouTube response with existing channel ID
         response = {
-            "items": [{
-                "id": "UC_existing_channel",  # Same as sample_channel
-                "snippet": {"title": "Test"},
-                "contentDetails": {"relatedPlaylists": {"uploads": "UU_test"}}
-            }]
+            "items": [
+                {
+                    "id": "UC_existing_channel",  # Same as sample_channel
+                    "snippet": {"title": "Test"},
+                    "contentDetails": {"relatedPlaylists": {"uploads": "UU_test"}},
+                }
+            ]
         }
 
-        with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = response
 
             payload = ChannelCreate(handle="@existingchannel")
 
             with pytest.raises(HTTPException) as exc_info:
-                await add_new_channel(payload, db_session, mock_youtube_api)
+                await create_channel(payload, db_session, mock_youtube_api)
 
             assert exc_info.value.status_code == 409
             assert "already been added" in exc_info.value.detail
 
-    async def test_add_new_channel_youtube_api_error_raises_500(
+    async def test_create_channel_youtube_api_error_raises_500(
         self, db_session, mock_youtube_api
     ):
         """Test that 500 is raised when YouTube API errors."""
         # Mock YouTube API error
-        with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.side_effect = Exception("API quota exceeded")
 
             payload = ChannelCreate(handle="@testchannel")
 
             with pytest.raises(HTTPException) as exc_info:
-                await add_new_channel(payload, db_session, mock_youtube_api)
+                await create_channel(payload, db_session, mock_youtube_api)
 
             assert exc_info.value.status_code == 500
             assert "YouTube API" in exc_info.value.detail
 
-    async def test_add_new_channel_with_folder_assignment(
+    async def test_create_channel_with_folder_assignment(
         self, db_session, mock_youtube_api, sample_youtube_channel_response
     ):
         """Test adding channel with folder assignment."""
         # First create a folder
         from app.db.models.folder import Folder
+
         folder = Folder(id=1, name="Test Folder", parent_id=None)
         db_session.add(folder)
         await db_session.commit()
 
-        with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = sample_youtube_channel_response
 
             payload = ChannelCreate(handle="@testchannel", folder_id=1)
 
-            channel = await add_new_channel(payload, db_session, mock_youtube_api)
+            channel = await create_channel(payload, db_session, mock_youtube_api)
 
             assert channel.folder_id == 1
 
-    async def test_add_new_channel_with_missing_optional_fields(
+    async def test_create_channel_with_missing_optional_fields(
         self, db_session, mock_youtube_api
     ):
         """Test adding channel when YouTube response has missing optional fields."""
         # Response with minimal data
         minimal_response = {
-            "items": [{
-                "id": "UC_minimal_123",
-                "snippet": {
-                    "title": "Minimal Channel",
-                    # No description, no thumbnails
-                },
-                "contentDetails": {
-                    "relatedPlaylists": {
-                        "uploads": "UU_minimal_uploads"
-                    }
+            "items": [
+                {
+                    "id": "UC_minimal_123",
+                    "snippet": {
+                        "title": "Minimal Channel",
+                        # No description, no thumbnails
+                    },
+                    "contentDetails": {
+                        "relatedPlaylists": {"uploads": "UU_minimal_uploads"}
+                    },
                 }
-            }]
+            ]
         }
 
-        with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = minimal_response
 
             payload = ChannelCreate(handle="@minimal")
 
-            channel = await add_new_channel(payload, db_session, mock_youtube_api)
+            channel = await create_channel(payload, db_session, mock_youtube_api)
 
             assert channel.id == "UC_minimal_123"
             assert channel.description is None
@@ -259,12 +260,15 @@ class TestRefreshChannelById:
         """Test successful channel refresh."""
         # Mock empty RSS feed (no new videos)
         from unittest.mock import MagicMock
+
         empty_feed = MagicMock()
         empty_feed.entries = []
         mock_feedparser.return_value = empty_feed
 
         # Mock the refresh_latest_channel_videos function
-        with patch('app.services.channel_service.refresh_latest_channel_videos') as mock_refresh:
+        with patch(
+            "app.services.channel_service.refresh_latest_channel_videos"
+        ) as mock_refresh:
             mock_refresh.return_value = None
 
             channel = await refresh_channel_by_id(

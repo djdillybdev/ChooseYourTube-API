@@ -131,7 +131,9 @@ class TestCreateVideosBulk:
         all_videos = await get_videos(db_session)
         assert len(all_videos) == 0
 
-    async def test_create_videos_bulk_with_minimal_fields(self, db_session, sample_channel):
+    async def test_create_videos_bulk_with_minimal_fields(
+        self, db_session, sample_channel
+    ):
         """Create videos with only required fields."""
         now = datetime.now(timezone.utc)
         videos = [

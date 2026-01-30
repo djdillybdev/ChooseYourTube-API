@@ -18,13 +18,12 @@ from ..schemas.tag import TagCreate, TagUpdate, TagOut
 
 class TaggableEntity(Protocol):
     """Protocol for entities that can have tags."""
+
     tags: list  # Relationship to Tag model
 
 
 async def sync_entity_tags(
-    entity: TaggableEntity,
-    tag_ids: list[int],
-    db_session: AsyncSession
+    entity: TaggableEntity, tag_ids: list[int], db_session: AsyncSession
 ) -> None:
     """
     Synchronize tags for any entity (Channel or Video).
@@ -52,8 +51,7 @@ async def sync_entity_tags(
         tag = await db_session.get(Tag, tag_id)
         if tag is None:
             raise HTTPException(
-                status_code=400,
-                detail=f"Tag with id {tag_id} does not exist"
+                status_code=400, detail=f"Tag with id {tag_id} does not exist"
             )
         requested_tags.append(tag)
 
@@ -76,9 +74,7 @@ async def sync_entity_tags(
 
 
 async def get_all_tags(
-    db_session: AsyncSession,
-    limit: int | None = None,
-    offset: int = 0
+    db_session: AsyncSession, limit: int | None = None, offset: int = 0
 ) -> PaginatedResponse[TagOut]:
     """
     Get all tags with pagination.
@@ -142,8 +138,7 @@ async def create_new_tag(payload: TagCreate, db_session: AsyncSession) -> Tag:
     existing_tag = await crud_tag.get_tags(db_session, name=payload.name, first=True)
     if existing_tag:
         raise HTTPException(
-            status_code=409,
-            detail=f"Tag with name '{payload.name}' already exists"
+            status_code=409, detail=f"Tag with name '{payload.name}' already exists"
         )
 
     # Create new tag
@@ -153,14 +148,11 @@ async def create_new_tag(payload: TagCreate, db_session: AsyncSession) -> Tag:
     except IntegrityError:
         await db_session.rollback()
         raise HTTPException(
-            status_code=409,
-            detail=f"Tag with name '{payload.name}' already exists"
+            status_code=409, detail=f"Tag with name '{payload.name}' already exists"
         )
 
 
-async def update_tag(
-    tag_id: int, payload: TagUpdate, db_session: AsyncSession
-) -> Tag:
+async def update_tag(tag_id: int, payload: TagUpdate, db_session: AsyncSession) -> Tag:
     """
     Update a tag's name.
 
@@ -181,11 +173,12 @@ async def update_tag(
     # Update name if provided
     if payload.name is not None:
         # Check if new name conflicts with existing tag
-        existing_tag = await crud_tag.get_tags(db_session, name=payload.name, first=True)
+        existing_tag = await crud_tag.get_tags(
+            db_session, name=payload.name, first=True
+        )
         if existing_tag and existing_tag.id != tag_id:
             raise HTTPException(
-                status_code=409,
-                detail=f"Tag with name '{payload.name}' already exists"
+                status_code=409, detail=f"Tag with name '{payload.name}' already exists"
             )
         tag.name = payload.name
 
@@ -238,7 +231,7 @@ async def get_videos_for_tag(
     # Return videos (already loaded via selectin)
     # Note: This doesn't use limit/offset on the videos themselves
     # For proper pagination, we'd need a more complex query
-    return tag.videos[offset:offset + limit] if limit else tag.videos[offset:]
+    return tag.videos[offset : offset + limit] if limit else tag.videos[offset:]
 
 
 async def get_channels_for_tag(
@@ -263,4 +256,4 @@ async def get_channels_for_tag(
     tag = await get_tag_by_id(tag_id, db_session)
 
     # Return channels (already loaded via selectin)
-    return tag.channels[offset:offset + limit] if limit else tag.channels[offset:]
+    return tag.channels[offset : offset + limit] if limit else tag.channels[offset:]

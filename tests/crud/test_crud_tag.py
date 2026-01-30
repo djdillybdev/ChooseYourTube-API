@@ -23,46 +23,16 @@ async def sample_tags(db_session):
     now = datetime.now(timezone.utc)
 
     tags = [
-        Tag(
-            name="python",
-            created_at=now - timedelta(days=1)
-        ),
-        Tag(
-            name="javascript",
-            created_at=now - timedelta(days=2)
-        ),
-        Tag(
-            name="tutorial",
-            created_at=now - timedelta(days=3)
-        ),
-        Tag(
-            name="advanced",
-            created_at=now - timedelta(days=4)
-        ),
-        Tag(
-            name="beginner",
-            created_at=now - timedelta(days=5)
-        ),
-        Tag(
-            name="database",
-            created_at=now - timedelta(days=6)
-        ),
-        Tag(
-            name="react",
-            created_at=now - timedelta(days=7)
-        ),
-        Tag(
-            name="algorithms",
-            created_at=now - timedelta(days=8)
-        ),
-        Tag(
-            name="webdev",
-            created_at=now - timedelta(days=9)
-        ),
-        Tag(
-            name="ai",
-            created_at=now - timedelta(days=10)
-        ),
+        Tag(name="python", created_at=now - timedelta(days=1)),
+        Tag(name="javascript", created_at=now - timedelta(days=2)),
+        Tag(name="tutorial", created_at=now - timedelta(days=3)),
+        Tag(name="advanced", created_at=now - timedelta(days=4)),
+        Tag(name="beginner", created_at=now - timedelta(days=5)),
+        Tag(name="database", created_at=now - timedelta(days=6)),
+        Tag(name="react", created_at=now - timedelta(days=7)),
+        Tag(name="algorithms", created_at=now - timedelta(days=8)),
+        Tag(name="webdev", created_at=now - timedelta(days=9)),
+        Tag(name="ai", created_at=now - timedelta(days=10)),
     ]
 
     for tag in tags:
@@ -73,6 +43,7 @@ async def sample_tags(db_session):
 
 
 # Basic Filtering Tests
+
 
 @pytest.mark.asyncio
 class TestGetTagsBasicFiltering:
@@ -88,7 +59,9 @@ class TestGetTagsBasicFiltering:
         assert result.id == tag_id
         assert result.name == "python"
 
-    async def test_filter_by_id_returns_list_when_first_false(self, db_session, sample_tags):
+    async def test_filter_by_id_returns_list_when_first_false(
+        self, db_session, sample_tags
+    ):
         """Should return a list with one tag when first=False."""
         tag_id = sample_tags[0].id
         results = await get_tags(db_session, id=tag_id, first=False)
@@ -126,7 +99,9 @@ class TestGetTagsBasicFiltering:
         assert len(results) == 10
         assert all(isinstance(tag, Tag) for tag in results)
 
-    async def test_filter_returns_empty_list_when_no_match(self, db_session, sample_tags):
+    async def test_filter_returns_empty_list_when_no_match(
+        self, db_session, sample_tags
+    ):
         """Should return empty list when no tags match the filter."""
         results = await get_tags(db_session, name="nonexistent")
 
@@ -140,6 +115,7 @@ class TestGetTagsBasicFiltering:
 
 
 # Pagination Tests
+
 
 @pytest.mark.asyncio
 class TestGetTagsPagination:
@@ -197,6 +173,7 @@ class TestGetTagsPagination:
 
 # Ordering Tests
 
+
 @pytest.mark.asyncio
 class TestGetTagsOrdering:
     """Tests for order_by and order_direction parameters."""
@@ -217,7 +194,9 @@ class TestGetTagsOrdering:
 
     async def test_order_by_created_at_ascending(self, db_session, sample_tags):
         """Should order tags by created_at in ascending order (oldest first)."""
-        results = await get_tags(db_session, order_by="created_at", order_direction="asc")
+        results = await get_tags(
+            db_session, order_by="created_at", order_direction="asc"
+        )
 
         # Oldest tag should be first (created 10 days ago)
         assert results[0].name == "ai"
@@ -225,7 +204,9 @@ class TestGetTagsOrdering:
 
     async def test_order_by_created_at_descending(self, db_session, sample_tags):
         """Should order tags by created_at in descending order (newest first)."""
-        results = await get_tags(db_session, order_by="created_at", order_direction="desc")
+        results = await get_tags(
+            db_session, order_by="created_at", order_direction="desc"
+        )
 
         # Newest tag should be first (created 1 day ago)
         assert results[0].name == "python"
@@ -265,6 +246,7 @@ class TestGetTagsOrdering:
 
 # Edge Cases and Error Handling
 
+
 @pytest.mark.asyncio
 class TestGetTagsEdgeCases:
     """Tests for edge cases and error handling."""
@@ -285,11 +267,7 @@ class TestGetTagsEdgeCases:
         """Should correctly combine filtering, pagination, and ordering."""
         # Get tags ordered by name, skip first 2, take 3
         results = await get_tags(
-            db_session,
-            limit=3,
-            offset=2,
-            order_by="name",
-            order_direction="asc"
+            db_session, limit=3, offset=2, order_by="name", order_direction="asc"
         )
 
         assert len(results) == 3
@@ -299,6 +277,7 @@ class TestGetTagsEdgeCases:
 
 
 # Return Type Tests
+
 
 @pytest.mark.asyncio
 class TestGetTagsReturnTypes:
@@ -326,7 +305,9 @@ class TestGetTagsReturnTypes:
         assert result is None
         assert not isinstance(result, list)
 
-    async def test_first_false_with_no_match_returns_empty_list(self, db_session, sample_tags):
+    async def test_first_false_with_no_match_returns_empty_list(
+        self, db_session, sample_tags
+    ):
         """first=False with no match should return empty list."""
         results = await get_tags(db_session, name="nonexistent", first=False)
 

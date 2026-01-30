@@ -25,7 +25,7 @@ async def sample_channel(db_session):
         id="UC001",
         title="Python Tutorials",
         handle="@pythontutorials",
-        uploads_playlist_id="UU001"
+        uploads_playlist_id="UU001",
     )
     return await create_channel(db_session, channel)
 
@@ -52,7 +52,7 @@ async def sample_video(db_session, sample_channel):
         description="A test video",
         published_at=datetime.now(timezone.utc),
         duration_seconds=180,
-        is_short=False
+        is_short=False,
     )
     await create_videos_bulk(db_session, [video])
     return await get_videos(db_session, id=video.id, first=True)
@@ -99,7 +99,9 @@ class TestUpdateVideoWithTags:
         result_tag_ids = {t.id for t in refreshed.tags}
         assert result_tag_ids == set(new_tag_ids)
 
-    async def test_remove_all_tags_with_empty_list(self, db_session, sample_video, sample_tags):
+    async def test_remove_all_tags_with_empty_list(
+        self, db_session, sample_video, sample_tags
+    ):
         """Remove all tags by providing an empty list."""
         # First, add some tags
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
@@ -118,7 +120,9 @@ class TestUpdateVideoWithTags:
         refreshed = await get_videos(db_session, id=sample_video.id, first=True)
         assert len(refreshed.tags) == 0
 
-    async def test_update_without_tag_ids_preserves_tags(self, db_session, sample_video, sample_tags):
+    async def test_update_without_tag_ids_preserves_tags(
+        self, db_session, sample_video, sample_tags
+    ):
         """Updating other fields without tag_ids should preserve existing tags."""
         # Add some tags
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
@@ -134,7 +138,9 @@ class TestUpdateVideoWithTags:
         assert len(refreshed.tags) == 2
         assert refreshed.is_favorited is True
 
-    async def test_add_duplicate_tag_ids_in_list(self, db_session, sample_video, sample_tags):
+    async def test_add_duplicate_tag_ids_in_list(
+        self, db_session, sample_video, sample_tags
+    ):
         """Providing duplicate tag IDs in the list should deduplicate."""
         # Provide duplicate IDs
         tag_ids = [sample_tags[0].id, sample_tags[0].id, sample_tags[1].id]
@@ -146,7 +152,9 @@ class TestUpdateVideoWithTags:
         refreshed = await get_videos(db_session, id=sample_video.id, first=True)
         assert len(refreshed.tags) == 2
 
-    async def test_update_video_with_nonexistent_tag_raises_error(self, db_session, sample_video):
+    async def test_update_video_with_nonexistent_tag_raises_error(
+        self, db_session, sample_video
+    ):
         """Providing a non-existent tag ID should raise HTTPException."""
         payload = VideoUpdate(tag_ids=[99999])
 
@@ -156,7 +164,9 @@ class TestUpdateVideoWithTags:
         assert exc_info.value.status_code == 400
         assert "does not exist" in exc_info.value.detail
 
-    async def test_partial_invalid_tag_ids_raises_error(self, db_session, sample_video, sample_tags):
+    async def test_partial_invalid_tag_ids_raises_error(
+        self, db_session, sample_video, sample_tags
+    ):
         """Providing a mix of valid and invalid tag IDs should raise error."""
         # Mix valid and invalid IDs
         tag_ids = [sample_tags[0].id, 99999, sample_tags[1].id]
@@ -168,7 +178,9 @@ class TestUpdateVideoWithTags:
 
         assert exc_info.value.status_code == 400
 
-    async def test_update_nonexistent_video_with_tags_raises_error(self, db_session, sample_tags):
+    async def test_update_nonexistent_video_with_tags_raises_error(
+        self, db_session, sample_tags
+    ):
         """Updating a non-existent video should raise 404."""
         payload = VideoUpdate(tag_ids=[sample_tags[0].id])
 
@@ -183,7 +195,9 @@ class TestUpdateVideoWithTags:
 class TestVideoTagRelationships:
     """Tests for tag relationship access and behavior."""
 
-    async def test_access_tags_through_video_relationship(self, db_session, sample_video, sample_tags):
+    async def test_access_tags_through_video_relationship(
+        self, db_session, sample_video, sample_tags
+    ):
         """Access tags through video.tags relationship."""
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
         payload = VideoUpdate(tag_ids=tag_ids)
@@ -197,7 +211,9 @@ class TestVideoTagRelationships:
         expected_names = {sample_tags[0].name, sample_tags[1].name}
         assert tag_names == expected_names
 
-    async def test_access_videos_through_tag_relationship(self, db_session, sample_channel, sample_tags):
+    async def test_access_videos_through_tag_relationship(
+        self, db_session, sample_channel, sample_tags
+    ):
         """Access videos through tag.videos relationship."""
         # Create multiple videos and add same tag to all
         videos = []
@@ -209,7 +225,7 @@ class TestVideoTagRelationships:
                 description=f"Description {i}",
                 published_at=datetime.now(timezone.utc),
                 duration_seconds=180,
-                is_short=False
+                is_short=False,
             )
             videos.append(video)
 
@@ -235,7 +251,9 @@ class TestVideoTagRelationships:
         assert len(refreshed.tags) == 0
         assert refreshed.tags == []
 
-    async def test_tags_separate_from_yt_tags(self, db_session, sample_channel, sample_tags):
+    async def test_tags_separate_from_yt_tags(
+        self, db_session, sample_channel, sample_tags
+    ):
         """Verify that user tags are separate from yt_tags (YouTube metadata)."""
         # Create video with yt_tags
         video = VideoCreate(
@@ -246,7 +264,7 @@ class TestVideoTagRelationships:
             published_at=datetime.now(timezone.utc),
             duration_seconds=180,
             is_short=False,
-            yt_tags=["python", "tutorial", "coding"]  # YouTube metadata tags
+            yt_tags=["python", "tutorial", "coding"],  # YouTube metadata tags
         )
         await create_videos_bulk(db_session, [video])
 
@@ -275,7 +293,9 @@ class TestVideoTagEdgeCases:
         refreshed = await get_videos(db_session, id=sample_video.id, first=True)
         assert len(refreshed.tags) == len(sample_tags)
 
-    async def test_tag_used_by_many_videos(self, db_session, sample_channel, sample_tags):
+    async def test_tag_used_by_many_videos(
+        self, db_session, sample_channel, sample_tags
+    ):
         """A tag can be used by many videos."""
         # Create multiple videos
         videos = []
@@ -287,7 +307,7 @@ class TestVideoTagEdgeCases:
                 description=f"Description {i}",
                 published_at=datetime.now(timezone.utc),
                 duration_seconds=180,
-                is_short=False
+                is_short=False,
             )
             videos.append(video)
 
@@ -303,7 +323,9 @@ class TestVideoTagEdgeCases:
         refreshed_tag = await get_tags(db_session, id=sample_tags[0].id, first=True)
         assert len(refreshed_tag.videos) == 5
 
-    async def test_add_remove_add_tags_multiple_times(self, db_session, sample_video, sample_tags):
+    async def test_add_remove_add_tags_multiple_times(
+        self, db_session, sample_video, sample_tags
+    ):
         """Add and remove tags multiple times (idempotent operations)."""
         tag_ids = [sample_tags[0].id]
 
@@ -336,10 +358,7 @@ class TestVideoTagEdgeCases:
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
 
         payload = VideoUpdate(
-            tag_ids=tag_ids,
-            is_favorited=True,
-            is_watched=True,
-            is_short=True
+            tag_ids=tag_ids, is_favorited=True, is_watched=True, is_short=True
         )
         await update_video(sample_video.id, payload, db_session)
 

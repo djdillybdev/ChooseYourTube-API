@@ -58,9 +58,7 @@ class Channel(Base):
 
     # Many-to-many relationship with Tags
     tags: Mapped[list["Tag"]] = relationship(
-        secondary=channel_tags,
-        back_populates="channels",
-        lazy="selectin"
+        secondary=channel_tags, back_populates="channels", lazy="selectin"
     )
 
     def __repr__(self) -> str:

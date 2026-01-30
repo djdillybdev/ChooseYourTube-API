@@ -25,8 +25,13 @@ class TestWorkerSettings:
     def test_worker_settings_functions_list(self):
         """Verify WorkerSettings includes all task functions."""
         assert len(WorkerSettings.functions) == 2
-        assert video_service.fetch_and_store_all_channel_videos_task in WorkerSettings.functions
-        assert video_service.refresh_latest_channel_videos_task in WorkerSettings.functions
+        assert (
+            video_service.fetch_and_store_all_channel_videos_task
+            in WorkerSettings.functions
+        )
+        assert (
+            video_service.refresh_latest_channel_videos_task in WorkerSettings.functions
+        )
 
     def test_worker_settings_cron_jobs(self):
         """Verify WorkerSettings includes cron job configuration."""
@@ -38,7 +43,7 @@ class TestWorkerSettings:
     def test_worker_settings_redis_settings(self):
         """Verify WorkerSettings has Redis configuration."""
         assert WorkerSettings.redis_settings is not None
-        assert hasattr(WorkerSettings, 'redis_settings')
+        assert hasattr(WorkerSettings, "redis_settings")
 
     def test_worker_settings_timezone(self):
         """Verify WorkerSettings has timezone configuration."""
@@ -91,7 +96,7 @@ class TestEnqueueChannelRefreshes:
     async def test_enqueue_channel_refreshes_empty_db(self, mock_sessionmanager):
         """When no channels exist, no jobs should be enqueued."""
         # Mock get_all_channels to return empty list
-        with patch('app.worker.channel_service.get_all_channels') as mock_get_channels:
+        with patch("app.worker.channel_service.get_all_channels") as mock_get_channels:
             mock_get_channels.return_value = []
 
             mock_redis = AsyncMock()
@@ -108,7 +113,7 @@ class TestEnqueueChannelRefreshes:
         mock_channel = MagicMock()
         mock_channel.id = "UC_test_channel_1"
 
-        with patch('app.worker.channel_service.get_all_channels') as mock_get_channels:
+        with patch("app.worker.channel_service.get_all_channels") as mock_get_channels:
             mock_get_channels.return_value = [mock_channel]
 
             mock_redis = AsyncMock()
@@ -123,7 +128,9 @@ class TestEnqueueChannelRefreshes:
                 _defer_by=timedelta(seconds=0),
             )
 
-    async def test_enqueue_channel_refreshes_multiple_channels(self, mock_sessionmanager):
+    async def test_enqueue_channel_refreshes_multiple_channels(
+        self, mock_sessionmanager
+    ):
         """With multiple channels, jobs should be staggered by 3 seconds."""
         # Create mock channels
         mock_channels = [
@@ -132,7 +139,7 @@ class TestEnqueueChannelRefreshes:
             MagicMock(id="UC_channel_3"),
         ]
 
-        with patch('app.worker.channel_service.get_all_channels') as mock_get_channels:
+        with patch("app.worker.channel_service.get_all_channels") as mock_get_channels:
             mock_get_channels.return_value = mock_channels
 
             mock_redis = AsyncMock()
@@ -156,7 +163,7 @@ class TestEnqueueChannelRefreshes:
 
     async def test_enqueue_channel_refreshes_uses_session(self, mock_sessionmanager):
         """Verify sessionmanager.session() context manager is used."""
-        with patch('app.worker.channel_service.get_all_channels') as mock_get_channels:
+        with patch("app.worker.channel_service.get_all_channels") as mock_get_channels:
             mock_get_channels.return_value = []
 
             mock_redis = AsyncMock()

@@ -29,7 +29,9 @@ class TagCreate(BaseModel):
 class TagUpdate(BaseModel):
     """Schema for updating a tag."""
 
-    name: str | None = Field(None, min_length=1, max_length=255, description="New tag name")
+    name: str | None = Field(
+        None, min_length=1, max_length=255, description="New tag name"
+    )
 
     @field_validator("name")
     @classmethod

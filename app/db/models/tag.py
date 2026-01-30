@@ -16,26 +16,23 @@ class Tag(Base):
     __tablename__ = "tags"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    name: Mapped[str] = mapped_column(
+        String(255), nullable=False, unique=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
     # Many-to-many relationships
     channels: Mapped[list["Channel"]] = relationship(
-        secondary=channel_tags,
-        back_populates="tags",
-        lazy="selectin"
+        secondary=channel_tags, back_populates="tags", lazy="selectin"
     )
     videos: Mapped[list["Video"]] = relationship(
-        secondary=video_tags,
-        back_populates="tags",
-        lazy="selectin"
+        secondary=video_tags, back_populates="tags", lazy="selectin"
     )
 
     def __init__(self, **kwargs):
         """Initialize Tag and normalize name to lowercase for case-insensitive storage."""
-        if 'name' in kwargs:
-            kwargs['name'] = kwargs['name'].lower()
+        if "name" in kwargs:
+            kwargs["name"] = kwargs["name"].lower()
         super().__init__(**kwargs)
-

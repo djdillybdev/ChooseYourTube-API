@@ -8,10 +8,12 @@ router = APIRouter(prefix="/channels", tags=["Channels"])
 
 
 @router.get("/", response_model=PaginatedResponse[ChannelOut])
-async def read_all_channels(
+async def list_channels(
     db_session: DBSessionDep,
     is_favorited: bool | None = Query(None, description="Filter by favorited status"),
-    folder_id: int | None = Query(None, description="Filter by folder ID (use 0 for root/no folder)"),
+    folder_id: int | None = Query(
+        None, description="Filter by folder ID (use 0 for root/no folder)"
+    ),
     tag_id: int | None = Query(None, description="Filter by tag ID"),
     limit: int = Query(50, ge=1, le=200, description="Number of items per page"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
@@ -39,7 +41,7 @@ async def read_all_channels(
 
 
 @router.get("/{channel_id}", response_model=ChannelOut)
-async def read_channel_by_id(channel_id: str, db_session: DBSessionDep):
+async def get_channel_by_id(channel_id: str, db_session: DBSessionDep):
     """
     Retrieves a single channel by its YouTube Channel ID.
     """
@@ -47,18 +49,18 @@ async def read_channel_by_id(channel_id: str, db_session: DBSessionDep):
 
 
 @router.post("/", response_model=ChannelOut, status_code=status.HTTP_201_CREATED)
-async def create_new_channel(
+async def create_channel(
     channel_data: ChannelCreate,
     db_session: DBSessionDep,
     youtube_client: YouTubeAPIDep,
     redis: ArqDep,
 ):
     """
-    Adds a new YouTube channel to the application.
+    Creates a new YouTube channel in the application.
     - Fetches channel details from the YouTube Data API.
     - Stores the channel information in the database.
     """
-    new_channel = await channel_service.add_new_channel(
+    new_channel = await channel_service.create_channel(
         channel_data=channel_data, db_session=db_session, youtube_client=youtube_client
     )
 
@@ -90,7 +92,7 @@ async def refresh_channel(
 
 
 @router.delete("/{channel_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_channel_by_id(channel_id: str, db_session: DBSessionDep):
+async def delete_channel(channel_id: str, db_session: DBSessionDep):
     """
     Deletes a single channel by its YouTube Channel ID.
     All associated videos will also be deleted.
@@ -103,8 +105,8 @@ async def delete_all_channels(
     db_session: DBSessionDep,
     confirm: str = Query(
         ...,
-        description="Must be exactly 'DELETE_ALL_CHANNELS' to confirm this destructive operation"
-    )
+        description="Must be exactly 'DELETE_ALL_CHANNELS' to confirm this destructive operation",
+    ),
 ):
     """
     Deletes ALL channels from the database.
@@ -115,7 +117,7 @@ async def delete_all_channels(
     if confirm != "DELETE_ALL_CHANNELS":
         raise HTTPException(
             status_code=400,
-            detail="Deletion not confirmed. Must provide ?confirm=DELETE_ALL_CHANNELS"
+            detail="Deletion not confirmed. Must provide ?confirm=DELETE_ALL_CHANNELS",
         )
 
     await channel_service.delete_all_channels(db_session)

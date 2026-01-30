@@ -139,10 +139,7 @@ class TestHasShortsTextCues:
     @pytest.mark.unit
     def test_shorts_in_description(self):
         """Should detect '#shorts' in description."""
-        snippet = {
-            "title": "Normal title",
-            "description": "This is a #shorts video"
-        }
+        snippet = {"title": "Normal title", "description": "This is a #shorts video"}
         assert _has_shorts_text_cues(snippet) is True
 
     @pytest.mark.unit
@@ -151,17 +148,14 @@ class TestHasShortsTextCues:
         snippet = {
             "title": "Normal title",
             "description": "Normal desc",
-            "tags": ["funny", "shorts", "comedy"]
+            "tags": ["funny", "shorts", "comedy"],
         }
         assert _has_shorts_text_cues(snippet) is True
 
     @pytest.mark.unit
     def test_shorts_in_tags_uppercase(self):
         """Should detect 'SHORTS' in tags (case insensitive)."""
-        snippet = {
-            "title": "Normal title",
-            "tags": ["funny", "SHORTS"]
-        }
+        snippet = {"title": "Normal title", "tags": ["funny", "SHORTS"]}
         assert _has_shorts_text_cues(snippet) is True
 
     @pytest.mark.unit
@@ -170,7 +164,7 @@ class TestHasShortsTextCues:
         snippet = {
             "title": "Regular video",
             "description": "Long form content about programming",
-            "tags": ["tutorial", "coding"]
+            "tags": ["tutorial", "coding"],
         }
         assert _has_shorts_text_cues(snippet) is False
 
@@ -190,47 +184,31 @@ class TestHasShortsTextCues:
     @pytest.mark.unit
     def test_none_title(self):
         """Should handle None title gracefully."""
-        snippet = {
-            "title": None,
-            "description": "Description here"
-        }
+        snippet = {"title": None, "description": "Description here"}
         assert _has_shorts_text_cues(snippet) is False
 
     @pytest.mark.unit
     def test_none_description(self):
         """Should handle None description gracefully."""
-        snippet = {
-            "title": "Title here",
-            "description": None
-        }
+        snippet = {"title": "Title here", "description": None}
         assert _has_shorts_text_cues(snippet) is False
 
     @pytest.mark.unit
     def test_none_tags(self):
         """Should handle None tags gracefully."""
-        snippet = {
-            "title": "Title here",
-            "description": "Desc",
-            "tags": None
-        }
+        snippet = {"title": "Title here", "description": "Desc", "tags": None}
         assert _has_shorts_text_cues(snippet) is False
 
     @pytest.mark.unit
     def test_empty_tags_array(self):
         """Should handle empty tags array."""
-        snippet = {
-            "title": "Title here",
-            "tags": []
-        }
+        snippet = {"title": "Title here", "tags": []}
         assert _has_shorts_text_cues(snippet) is False
 
     @pytest.mark.unit
     def test_tags_with_none_values(self):
         """Should handle tags array with None values."""
-        snippet = {
-            "title": "Title",
-            "tags": ["valid", None, "shorts"]
-        }
+        snippet = {"title": "Title", "tags": ["valid", None, "shorts"]}
         assert _has_shorts_text_cues(snippet) is True
 
     @pytest.mark.unit
@@ -264,10 +242,7 @@ class TestClassifyIsShort:
     @pytest.mark.unit
     def test_short_duration_with_shorts_in_description(self):
         """Short duration + #shorts in description = Short."""
-        snippet = {
-            "title": "Test",
-            "description": "Check out this #shorts"
-        }
+        snippet = {"title": "Test", "description": "Check out this #shorts"}
         assert _classify_is_short(duration_seconds=30, snippet=snippet) is True
 
     @pytest.mark.unit

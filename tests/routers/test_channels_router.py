@@ -13,14 +13,14 @@ from unittest.mock import AsyncMock, patch
 class TestChannelsRouter:
     """Test channels router endpoints."""
 
-    async def test_read_all_channels_empty(self, test_client, db_session):
+    async def test_list_channels_empty(self, test_client, db_session):
         """Test GET /channels/ returns empty list when no channels exist."""
         response = test_client.get("/channels/")
 
         assert response.status_code == 200
         assert response.json()["total"] == 0
 
-    async def test_read_all_channels_with_data(self, test_client, db_session):
+    async def test_list_channels_with_data(self, test_client, db_session):
         """Test GET /channels/ returns list of channels."""
         # Create sample channels
         from app.db.models.channel import Channel
@@ -51,7 +51,7 @@ class TestChannelsRouter:
         assert data[0]["id"] == "UC_test_1"
         assert data[1]["id"] == "UC_test_2"
 
-    async def test_read_channel_by_id_success(self, test_client, db_session):
+    async def test_get_channel_by_id_success(self, test_client, db_session):
         """Test GET /channels/{id} returns channel by ID."""
         from app.db.models.channel import Channel
 
@@ -72,7 +72,7 @@ class TestChannelsRouter:
         assert data["handle"] == "testchannel"
         assert data["title"] == "Test Channel"
 
-    async def test_read_channel_by_id_not_found(self, test_client, db_session):
+    async def test_get_channel_by_id_not_found(self, test_client, db_session):
         """Test GET /channels/{id} returns 404 for non-existent channel."""
         response = test_client.get("/channels/UC_nonexistent")
 
@@ -84,31 +84,28 @@ class TestChannelsRouter:
         """Test POST /channels/ creates channel and enqueues background job."""
         # Mock YouTube API response
         youtube_response = {
-            "items": [{
-                "id": "UC_new_channel",
-                "snippet": {
-                    "title": "New Channel",
-                    "description": "Test Description",
-                    "thumbnails": {
-                        "high": {"url": "https://example.com/thumb.jpg"}
-                    }
-                },
-                "contentDetails": {
-                    "relatedPlaylists": {
-                        "uploads": "UU_new_uploads"
-                    }
+            "items": [
+                {
+                    "id": "UC_new_channel",
+                    "snippet": {
+                        "title": "New Channel",
+                        "description": "Test Description",
+                        "thumbnails": {
+                            "high": {"url": "https://example.com/thumb.jpg"}
+                        },
+                    },
+                    "contentDetails": {
+                        "relatedPlaylists": {"uploads": "UU_new_uploads"}
+                    },
                 }
-            }]
+            ]
         }
 
         # Mock asyncio.to_thread to return the YouTube response
-        with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = youtube_response
 
-            response = test_client.post(
-                "/channels/",
-                json={"handle": "@newchannel"}
-            )
+            response = test_client.post("/channels/", json={"handle": "@newchannel"})
 
         assert response.status_code == 201
         data = response.json()
@@ -117,8 +114,7 @@ class TestChannelsRouter:
 
         # Verify background job was enqueued
         mock_arq_redis.enqueue_job.assert_called_once_with(
-            "fetch_and_store_all_channel_videos_task",
-            channel_id="UC_new_channel"
+            "fetch_and_store_all_channel_videos_task", channel_id="UC_new_channel"
         )
 
     async def test_create_channel_with_folder(
@@ -127,32 +123,29 @@ class TestChannelsRouter:
         """Test POST /channels/ creates channel with folder assignment."""
         # Create a folder first
         from app.db.models.folder import Folder
+
         folder = Folder(id=1, name="Test Folder", parent_id=None)
         db_session.add(folder)
         await db_session.commit()
 
         # Mock YouTube API response
         youtube_response = {
-            "items": [{
-                "id": "UC_with_folder",
-                "snippet": {
-                    "title": "Channel with Folder",
-                    "thumbnails": {}
-                },
-                "contentDetails": {
-                    "relatedPlaylists": {
-                        "uploads": "UU_with_folder"
-                    }
+            "items": [
+                {
+                    "id": "UC_with_folder",
+                    "snippet": {"title": "Channel with Folder", "thumbnails": {}},
+                    "contentDetails": {
+                        "relatedPlaylists": {"uploads": "UU_with_folder"}
+                    },
                 }
-            }]
+            ]
         }
 
-        with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = youtube_response
 
             response = test_client.post(
-                "/channels/",
-                json={"handle": "@channelwithfolder", "folder_id": 1}
+                "/channels/", json={"handle": "@channelwithfolder", "folder_id": 1}
             )
 
         assert response.status_code == 201
@@ -168,14 +161,13 @@ class TestChannelsRouter:
             handle="updatetest",
             title="Update Test",
             uploads_playlist_id="UU_update_test",
-            is_favorited=False
+            is_favorited=False,
         )
         db_session.add(channel)
         await db_session.commit()
 
         response = test_client.patch(
-            "/channels/UC_update_test",
-            json={"is_favorited": True}
+            "/channels/UC_update_test", json={"is_favorited": True}
         )
 
         assert response.status_code == 200
@@ -194,16 +186,13 @@ class TestChannelsRouter:
             handle="movetest",
             title="Move Test",
             uploads_playlist_id="UU_move_test",
-            folder_id=None
+            folder_id=None,
         )
         db_session.add(folder)
         db_session.add(channel)
         await db_session.commit()
 
-        response = test_client.patch(
-            "/channels/UC_move_test",
-            json={"folder_id": 1}
-        )
+        response = test_client.patch("/channels/UC_move_test", json={"folder_id": 1})
 
         assert response.status_code == 200
         data = response.json()
@@ -232,7 +221,9 @@ class TestChannelsRouter:
         mock_feedparser.return_value = empty_feed
 
         # Mock refresh function to avoid actual API calls
-        with patch('app.services.channel_service.refresh_latest_channel_videos') as mock_refresh:
+        with patch(
+            "app.services.channel_service.refresh_latest_channel_videos"
+        ) as mock_refresh:
             mock_refresh.return_value = None
 
             response = test_client.post("/channels/UC_refresh_test/refresh")
@@ -244,7 +235,7 @@ class TestChannelsRouter:
         # Verify refresh was called
         mock_refresh.assert_called_once()
 
-    async def test_delete_channel_by_id(self, test_client, db_session):
+    async def test_delete_channel(self, test_client, db_session):
         """Test DELETE /channels/{id} deletes channel."""
         from app.db.models.channel import Channel
 
@@ -264,6 +255,7 @@ class TestChannelsRouter:
 
         # Verify channel is gone
         from sqlalchemy import select
+
         result = await db_session.execute(
             select(Channel).where(Channel.id == "UC_delete_test")
         )
@@ -297,5 +289,6 @@ class TestChannelsRouter:
 
         # Verify all channels are gone
         from sqlalchemy import select
+
         result = await db_session.execute(select(Channel))
         assert len(result.scalars().all()) == 0

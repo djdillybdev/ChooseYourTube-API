@@ -88,11 +88,12 @@ class TestFoldersRouter:
     #     assert data["name"] == "Child Folder"
     #     assert data["parent_id"] == 1
 
-    async def test_create_folder_nonexistent_parent_raises_404(self, test_client, db_session):
+    async def test_create_folder_nonexistent_parent_raises_404(
+        self, test_client, db_session
+    ):
         """Test POST /folders/ with non-existent parent returns 404."""
         response = test_client.post(
-            "/folders/",
-            json={"name": "Invalid Child", "parent_id": 99999}
+            "/folders/", json={"name": "Invalid Child", "parent_id": 99999}
         )
 
         assert response.status_code == 404
@@ -147,10 +148,7 @@ class TestFoldersRouter:
         db_session.add(folder)
         await db_session.commit()
 
-        response = test_client.patch(
-            "/folders/1",
-            json={"parent_id": 1}
-        )
+        response = test_client.patch("/folders/1", json={"parent_id": 1})
 
         assert response.status_code == 400
         assert "own parent" in response.json()["detail"].lower()
@@ -170,10 +168,7 @@ class TestFoldersRouter:
         await db_session.commit()
 
         # Try to move root under grandchild (would create cycle)
-        response = test_client.patch(
-            "/folders/1",
-            json={"parent_id": 3}
-        )
+        response = test_client.patch("/folders/1", json={"parent_id": 3})
 
         assert response.status_code == 400
         assert "descendant" in response.json()["detail"].lower()

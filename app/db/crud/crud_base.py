@@ -58,7 +58,7 @@ async def base_get(
     order_by: str,
     order_direction: Literal["asc", "desc"],
     first: bool = False,
-    special_ordering_handler: Callable | None = None
+    special_ordering_handler: Callable | None = None,
 ) -> list[ModelType] | ModelType | None:
     """
     Base query function for retrieving model instances with filtering, pagination, and ordering.

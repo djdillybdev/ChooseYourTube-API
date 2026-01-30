@@ -43,11 +43,13 @@ class TestBuildTreeProperties:
         # Simple count for this case (all roots, no children)
         total_nodes = len(tree)
 
-        assert total_nodes == folder_count, f"Expected {folder_count} nodes, got {total_nodes}"
+        assert total_nodes == folder_count, (
+            f"Expected {folder_count} nodes, got {total_nodes}"
+        )
 
     @given(
         root_count=st.integers(min_value=1, max_value=10),
-        children_per_root=st.integers(min_value=0, max_value=5)
+        children_per_root=st.integers(min_value=0, max_value=5),
     )
     def test_build_tree_correct_hierarchy(self, root_count, children_per_root):
         """
@@ -61,13 +63,17 @@ class TestBuildTreeProperties:
 
         # Create root folders
         for root_idx in range(root_count):
-            folders.append(Folder(id=folder_id, name=f"Root {root_idx}", parent_id=None))
+            folders.append(
+                Folder(id=folder_id, name=f"Root {root_idx}", parent_id=None)
+            )
             root_id = folder_id
             folder_id += 1
 
             # Create children for this root
             for child_idx in range(children_per_root):
-                folders.append(Folder(id=folder_id, name=f"Child {child_idx}", parent_id=root_id))
+                folders.append(
+                    Folder(id=folder_id, name=f"Child {child_idx}", parent_id=root_id)
+                )
                 folder_id += 1
 
         tree = _build_tree(folders)
@@ -77,8 +83,9 @@ class TestBuildTreeProperties:
 
         # Verify each root has correct number of children
         for root in tree:
-            assert len(root.children) == children_per_root, \
+            assert len(root.children) == children_per_root, (
                 f"Root {root.name} should have {children_per_root} children, got {len(root.children)}"
+            )
 
     def test_build_tree_empty_list_returns_empty(self):
         """
@@ -101,10 +108,12 @@ class TestBuildTreeProperties:
         """
         # Create a simple hierarchy: one root with all others as direct children
         folders = [Folder(id=1, name="Root", parent_id=None)]
-        folders.extend([
-            Folder(id=i, name=f"Child {i}", parent_id=1)
-            for i in range(2, folder_count + 1)
-        ])
+        folders.extend(
+            [
+                Folder(id=i, name=f"Child {i}", parent_id=1)
+                for i in range(2, folder_count + 1)
+            ]
+        )
 
         tree = _build_tree(folders)
 
@@ -126,7 +135,7 @@ class TestBuildTreeProperties:
         folders = [Folder(id=1, name="Root", parent_id=None)]
 
         for i in range(2, depth + 2):
-            folders.append(Folder(id=i, name=f"Level {i-1}", parent_id=i-1))
+            folders.append(Folder(id=i, name=f"Level {i - 1}", parent_id=i - 1))
 
         tree = _build_tree(folders)
 
@@ -138,11 +147,15 @@ class TestBuildTreeProperties:
         levels_traversed = 1
 
         while current.children:
-            assert len(current.children) == 1, "Chain should have exactly one child at each level"
+            assert len(current.children) == 1, (
+                "Chain should have exactly one child at each level"
+            )
             current = current.children[0]
             levels_traversed += 1
 
-        assert levels_traversed == depth + 1, f"Expected depth {depth + 1}, got {levels_traversed}"
+        assert levels_traversed == depth + 1, (
+            f"Expected depth {depth + 1}, got {levels_traversed}"
+        )
 
 
 class TestAssertNotCycleProperties:
@@ -168,14 +181,16 @@ class TestAssertNotCycleProperties:
         # Try to move folder 1 to any position in the chain (should all fail)
         for new_parent_id in range(2, chain_length + 1):
             with pytest.raises(HTTPException) as exc_info:
-                _assert_not_cycle(folders_dict, moving_id=1, new_parent_id=new_parent_id)
+                _assert_not_cycle(
+                    folders_dict, moving_id=1, new_parent_id=new_parent_id
+                )
 
             assert exc_info.value.status_code == 400
             assert "descendant" in exc_info.value.detail.lower()
 
     @given(
         folder_id=st.integers(min_value=1, max_value=100),
-        non_ancestor_id=st.integers(min_value=101, max_value=200)
+        non_ancestor_id=st.integers(min_value=101, max_value=200),
     )
     def test_assert_not_cycle_allows_non_cycles(self, folder_id, non_ancestor_id):
         """
@@ -186,12 +201,16 @@ class TestAssertNotCycleProperties:
         # Create simple structure: folder_id -> parent, and separate non_ancestor_id
         folders_dict = {
             folder_id: Folder(id=folder_id, name=f"Folder {folder_id}", parent_id=None),
-            non_ancestor_id: Folder(id=non_ancestor_id, name=f"Folder {non_ancestor_id}", parent_id=None)
+            non_ancestor_id: Folder(
+                id=non_ancestor_id, name=f"Folder {non_ancestor_id}", parent_id=None
+            ),
         }
 
         # This should NOT raise (no cycle possible)
         try:
-            _assert_not_cycle(folders_dict, moving_id=folder_id, new_parent_id=non_ancestor_id)
+            _assert_not_cycle(
+                folders_dict, moving_id=folder_id, new_parent_id=non_ancestor_id
+            )
         except Exception as e:
             pytest.fail(f"Unexpected exception: {e}")
 
@@ -205,7 +224,7 @@ class TestAssertNotCycleProperties:
         folders_dict = {
             1: Folder(id=1, name="Folder 1", parent_id=None),
             2: Folder(id=2, name="Folder 2", parent_id=1),
-            3: Folder(id=3, name="Folder 3", parent_id=2)
+            3: Folder(id=3, name="Folder 3", parent_id=2),
         }
 
         # Moving to root (None) should always be allowed
@@ -229,18 +248,20 @@ class TestAssertNotCycleProperties:
         folders_dict[1] = Folder(id=1, name="Folder 1", parent_id=None)
 
         for i in range(2, hierarchy_depth + 1):
-            folders_dict[i] = Folder(id=i, name=f"Folder {i}", parent_id=i-1)
+            folders_dict[i] = Folder(id=i, name=f"Folder {i}", parent_id=i - 1)
 
         # Try to move folder 1 to any of its descendants (all should fail)
         for descendant_id in range(2, hierarchy_depth + 1):
             with pytest.raises(HTTPException) as exc_info:
-                _assert_not_cycle(folders_dict, moving_id=1, new_parent_id=descendant_id)
+                _assert_not_cycle(
+                    folders_dict, moving_id=1, new_parent_id=descendant_id
+                )
 
             assert exc_info.value.status_code == 400
 
     @given(
         root_count=st.integers(min_value=2, max_value=5),
-        depth_per_root=st.integers(min_value=1, max_value=5)
+        depth_per_root=st.integers(min_value=1, max_value=5),
     )
     def test_assert_not_cycle_allows_cross_tree_moves(self, root_count, depth_per_root):
         """
@@ -255,13 +276,17 @@ class TestAssertNotCycleProperties:
         # Create multiple separate trees
         for root_idx in range(root_count):
             root_id = folder_id
-            folders_dict[folder_id] = Folder(id=folder_id, name=f"Root {root_idx}", parent_id=None)
+            folders_dict[folder_id] = Folder(
+                id=folder_id, name=f"Root {root_idx}", parent_id=None
+            )
             folder_id += 1
 
             # Create a chain under this root
             for depth in range(depth_per_root):
                 parent_id = folder_id - 1
-                folders_dict[folder_id] = Folder(id=folder_id, name=f"Node {folder_id}", parent_id=parent_id)
+                folders_dict[folder_id] = Folder(
+                    id=folder_id, name=f"Node {folder_id}", parent_id=parent_id
+                )
                 folder_id += 1
 
         # Pick a leaf from first tree and a leaf from last tree
@@ -270,7 +295,9 @@ class TestAssertNotCycleProperties:
 
         # Moving between different trees should be allowed
         try:
-            _assert_not_cycle(folders_dict, moving_id=first_tree_leaf, new_parent_id=last_tree_root)
+            _assert_not_cycle(
+                folders_dict, moving_id=first_tree_leaf, new_parent_id=last_tree_root
+            )
         except Exception as e:
             pytest.fail(f"Cross-tree move should not raise exception: {e}")
 
@@ -280,7 +307,7 @@ class TestFolderHierarchyProperties:
 
     @given(
         parent_id=st.integers(min_value=1, max_value=100),
-        child_id=st.integers(min_value=101, max_value=200)
+        child_id=st.integers(min_value=101, max_value=200),
     )
     def test_parent_child_relationship_is_directional(self, parent_id, child_id):
         """
@@ -293,7 +320,9 @@ class TestFolderHierarchyProperties:
 
         folders_dict = {
             parent_id: Folder(id=parent_id, name=f"Parent {parent_id}", parent_id=None),
-            child_id: Folder(id=child_id, name=f"Child {child_id}", parent_id=parent_id)
+            child_id: Folder(
+                id=child_id, name=f"Child {child_id}", parent_id=parent_id
+            ),
         }
 
         # Build tree to verify relationship

@@ -22,10 +22,7 @@ def mock_channel_info_response(
     return {
         "kind": "youtube#channelListResponse",
         "etag": "test_etag",
-        "pageInfo": {
-            "totalResults": 1,
-            "resultsPerPage": 1
-        },
+        "pageInfo": {"totalResults": 1, "resultsPerPage": 1},
         "items": [
             {
                 "kind": "youtube#channel",
@@ -40,38 +37,32 @@ def mock_channel_info_response(
                         "default": {
                             "url": f"https://yt3.ggpht.com/default_{channel_id}",
                             "width": 88,
-                            "height": 88
+                            "height": 88,
                         },
                         "medium": {
                             "url": f"https://yt3.ggpht.com/medium_{channel_id}",
                             "width": 240,
-                            "height": 240
+                            "height": 240,
                         },
                         "high": {
                             "url": f"https://yt3.ggpht.com/high_{channel_id}",
                             "width": 800,
-                            "height": 800
-                        }
+                            "height": 800,
+                        },
                     },
-                    "localized": {
-                        "title": title,
-                        "description": description
-                    }
+                    "localized": {"title": title, "description": description},
                 },
                 "contentDetails": {
-                    "relatedPlaylists": {
-                        "likes": "",
-                        "uploads": uploads_playlist_id
-                    }
+                    "relatedPlaylists": {"likes": "", "uploads": uploads_playlist_id}
                 },
                 "statistics": {
                     "viewCount": "1000000",
                     "subscriberCount": "50000",
                     "hiddenSubscriberCount": False,
-                    "videoCount": "100"
-                }
+                    "videoCount": "100",
+                },
             }
-        ]
+        ],
     }
 
 
@@ -80,11 +71,8 @@ def mock_channel_not_found_response() -> Dict[str, Any]:
     return {
         "kind": "youtube#channelListResponse",
         "etag": "test_etag",
-        "pageInfo": {
-            "totalResults": 0,
-            "resultsPerPage": 0
-        },
-        "items": []
+        "pageInfo": {"totalResults": 0, "resultsPerPage": 0},
+        "items": [],
     }
 
 
@@ -104,50 +92,46 @@ def mock_playlist_items_response(
 
     items = []
     for i, video_id in enumerate(video_ids):
-        items.append({
-            "kind": "youtube#playlistItem",
-            "etag": f"test_etag_{i}",
-            "id": f"playlist_item_{i}",
-            "snippet": {
-                "publishedAt": f"2024-01-{str(i+1).zfill(2)}T12:00:00Z",
-                "channelId": "UC_test_channel_id",
-                "title": f"Test Video {i+1}",
-                "description": f"Description for test video {i+1}",
-                "thumbnails": {
-                    "default": {
-                        "url": f"https://i.ytimg.com/vi/{video_id}/default.jpg",
-                        "width": 120,
-                        "height": 90
+        items.append(
+            {
+                "kind": "youtube#playlistItem",
+                "etag": f"test_etag_{i}",
+                "id": f"playlist_item_{i}",
+                "snippet": {
+                    "publishedAt": f"2024-01-{str(i + 1).zfill(2)}T12:00:00Z",
+                    "channelId": "UC_test_channel_id",
+                    "title": f"Test Video {i + 1}",
+                    "description": f"Description for test video {i + 1}",
+                    "thumbnails": {
+                        "default": {
+                            "url": f"https://i.ytimg.com/vi/{video_id}/default.jpg",
+                            "width": 120,
+                            "height": 90,
+                        },
+                        "medium": {
+                            "url": f"https://i.ytimg.com/vi/{video_id}/mqdefault.jpg",
+                            "width": 320,
+                            "height": 180,
+                        },
+                        "high": {
+                            "url": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+                            "width": 480,
+                            "height": 360,
+                        },
                     },
-                    "medium": {
-                        "url": f"https://i.ytimg.com/vi/{video_id}/mqdefault.jpg",
-                        "width": 320,
-                        "height": 180
-                    },
-                    "high": {
-                        "url": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
-                        "width": 480,
-                        "height": 360
-                    }
+                    "channelTitle": "Test Channel",
+                    "playlistId": playlist_id,
+                    "position": i,
+                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
                 },
-                "channelTitle": "Test Channel",
-                "playlistId": playlist_id,
-                "position": i,
-                "resourceId": {
-                    "kind": "youtube#video",
-                    "videoId": video_id
-                }
             }
-        })
+        )
 
     response = {
         "kind": "youtube#playlistItemListResponse",
         "etag": "test_playlist_etag",
-        "pageInfo": {
-            "totalResults": len(video_ids),
-            "resultsPerPage": len(video_ids)
-        },
-        "items": items
+        "pageInfo": {"totalResults": len(video_ids), "resultsPerPage": len(video_ids)},
+        "items": items,
     }
 
     if next_page_token:
@@ -190,7 +174,7 @@ def mock_videos_list_response(
                 "duration": "PT45S",
                 "published_at": "2024-01-02T12:00:00Z",
                 "channel_id": "UC_test_channel_id",
-            }
+            },
         ]
 
     items = []
@@ -203,103 +187,100 @@ def mock_videos_list_response(
         channel_id = data.get("channel_id", "UC_test_channel_id")
         tags = data.get("tags", [])
 
-        items.append({
-            "kind": "youtube#video",
-            "etag": f"test_etag_{video_id}",
-            "id": video_id,
-            "snippet": {
-                "publishedAt": published_at,
-                "channelId": channel_id,
-                "title": title,
-                "description": description,
-                "thumbnails": {
-                    "default": {
-                        "url": f"https://i.ytimg.com/vi/{video_id}/default.jpg",
-                        "width": 120,
-                        "height": 90
-                    },
-                    "medium": {
-                        "url": f"https://i.ytimg.com/vi/{video_id}/mqdefault.jpg",
-                        "width": 320,
-                        "height": 180
-                    },
-                    "high": {
-                        "url": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
-                        "width": 480,
-                        "height": 360
-                    }
-                },
-                "channelTitle": "Test Channel",
-                "tags": tags,
-                "categoryId": "22",
-                "liveBroadcastContent": "none",
-                "localized": {
+        items.append(
+            {
+                "kind": "youtube#video",
+                "etag": f"test_etag_{video_id}",
+                "id": video_id,
+                "snippet": {
+                    "publishedAt": published_at,
+                    "channelId": channel_id,
                     "title": title,
-                    "description": description
-                }
-            },
-            "contentDetails": {
-                "duration": duration,
-                "dimension": "2d",
-                "definition": "hd",
-                "caption": "false",
-                "licensedContent": True,
-                "projection": "rectangular"
-            },
-            "statistics": {
-                "viewCount": "10000",
-                "likeCount": "500",
-                "favoriteCount": "0",
-                "commentCount": "50"
+                    "description": description,
+                    "thumbnails": {
+                        "default": {
+                            "url": f"https://i.ytimg.com/vi/{video_id}/default.jpg",
+                            "width": 120,
+                            "height": 90,
+                        },
+                        "medium": {
+                            "url": f"https://i.ytimg.com/vi/{video_id}/mqdefault.jpg",
+                            "width": 320,
+                            "height": 180,
+                        },
+                        "high": {
+                            "url": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+                            "width": 480,
+                            "height": 360,
+                        },
+                    },
+                    "channelTitle": "Test Channel",
+                    "tags": tags,
+                    "categoryId": "22",
+                    "liveBroadcastContent": "none",
+                    "localized": {"title": title, "description": description},
+                },
+                "contentDetails": {
+                    "duration": duration,
+                    "dimension": "2d",
+                    "definition": "hd",
+                    "caption": "false",
+                    "licensedContent": True,
+                    "projection": "rectangular",
+                },
+                "statistics": {
+                    "viewCount": "10000",
+                    "likeCount": "500",
+                    "favoriteCount": "0",
+                    "commentCount": "50",
+                },
             }
-        })
+        )
 
     return {
         "kind": "youtube#videoListResponse",
         "etag": "test_videos_etag",
-        "pageInfo": {
-            "totalResults": len(items),
-            "resultsPerPage": len(items)
-        },
-        "items": items
+        "pageInfo": {"totalResults": len(items), "resultsPerPage": len(items)},
+        "items": items,
     }
 
 
-def mock_empty_playlist_response(playlist_id: str = "UU_test_playlist_id") -> Dict[str, Any]:
+def mock_empty_playlist_response(
+    playlist_id: str = "UU_test_playlist_id",
+) -> Dict[str, Any]:
     """Returns a mock response for an empty playlist."""
     return {
         "kind": "youtube#playlistItemListResponse",
         "etag": "test_etag",
-        "pageInfo": {
-            "totalResults": 0,
-            "resultsPerPage": 0
-        },
-        "items": []
+        "pageInfo": {"totalResults": 0, "resultsPerPage": 0},
+        "items": [],
     }
 
 
 def mock_videos_short_response() -> Dict[str, Any]:
     """Returns a mock response for YouTube Shorts videos."""
-    return mock_videos_list_response([
-        {
-            "video_id": "short_video_1",
-            "title": "Cool Short #shorts",
-            "description": "A YouTube Short with hashtag",
-            "duration": "PT30S",
-            "published_at": "2024-01-01T12:00:00Z",
-            "channel_id": "UC_test_channel_id",
-            "tags": ["shorts", "test"]
-        },
-        {
-            "video_id": "short_video_2",
-            "title": "Another Short",
-            "description": "Check out this #short video!",
-            "duration": "PT55S",
-            "published_at": "2024-01-02T12:00:00Z",
-            "channel_id": "UC_test_channel_id",
-            "tags": ["short"]
-        }
-    ])
+    return mock_videos_list_response(
+        [
+            {
+                "video_id": "short_video_1",
+                "title": "Cool Short #shorts",
+                "description": "A YouTube Short with hashtag",
+                "duration": "PT30S",
+                "published_at": "2024-01-01T12:00:00Z",
+                "channel_id": "UC_test_channel_id",
+                "tags": ["shorts", "test"],
+            },
+            {
+                "video_id": "short_video_2",
+                "title": "Another Short",
+                "description": "Check out this #short video!",
+                "duration": "PT55S",
+                "published_at": "2024-01-02T12:00:00Z",
+                "channel_id": "UC_test_channel_id",
+                "tags": ["short"],
+            },
+        ]
+    )
 
 
 def mock_paginated_playlist_response(
@@ -320,10 +301,7 @@ def mock_paginated_playlist_response(
     has_next = end_idx < total_videos
     next_token = f"page_{page_num + 1}_token" if has_next else None
 
-    return mock_playlist_items_response(
-        video_ids=video_ids,
-        next_page_token=next_token
-    )
+    return mock_playlist_items_response(video_ids=video_ids, next_page_token=next_token)
 
 
 # Convenience fixtures for common scenarios

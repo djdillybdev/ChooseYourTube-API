@@ -42,11 +42,7 @@ async def create_tag(payload: TagCreate, db_session: DBSessionDep):
 
 
 @router.patch("/{tag_id}", response_model=TagOut)
-async def update_tag(
-    tag_id: int,
-    payload: TagUpdate,
-    db_session: DBSessionDep
-):
+async def update_tag(tag_id: int, payload: TagUpdate, db_session: DBSessionDep):
     """
     Update a tag's name.
     """

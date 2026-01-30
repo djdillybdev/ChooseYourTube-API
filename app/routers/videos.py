@@ -18,8 +18,12 @@ async def list_videos(
     is_short: bool | None = Query(None, description="Filter by YouTube Shorts"),
     channel_id: str | None = Query(None, description="Filter by channel ID"),
     tag_id: int | None = Query(None, description="Filter by tag ID"),
-    published_after: str | None = Query(None, description="Filter videos published after this date (ISO 8601 format)"),
-    published_before: str | None = Query(None, description="Filter videos published before this date (ISO 8601 format)"),
+    published_after: str | None = Query(
+        None, description="Filter videos published after this date (ISO 8601 format)"
+    ),
+    published_before: str | None = Query(
+        None, description="Filter videos published before this date (ISO 8601 format)"
+    ),
 ):
     """
     List videos with optional filtering.
@@ -65,11 +69,7 @@ async def list_videos_by_channel(
 
 
 @router.patch("/{video_id}", response_model=VideoOut)
-async def update_video(
-    video_id: str,
-    payload: VideoUpdate,
-    db_session: DBSessionDep
-):
+async def update_video(video_id: str, payload: VideoUpdate, db_session: DBSessionDep):
     """
     Update video metadata (favorited, watched, short status, tags).
     """

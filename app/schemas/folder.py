@@ -6,6 +6,7 @@ from .base import BaseSchema
 
 _UNSET = object()
 
+
 class FolderCreate(BaseModel):
     """Schema for creating a new folder."""
 

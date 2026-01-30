@@ -64,7 +64,9 @@ async def get_all_channels(
 
     # Post-filter for tag_id (since tags are a relationship, not a direct field)
     if tag_id is not None:
-        all_channels = [c for c in all_channels if any(tag.id == tag_id for tag in c.tags)]
+        all_channels = [
+            c for c in all_channels if any(tag.id == tag_id for tag in c.tags)
+        ]
 
     # Get total count after all filters
     total = len(all_channels)
@@ -78,7 +80,7 @@ async def get_all_channels(
         items=paginated_channels,
         limit=limit,
         offset=offset,
-        has_more=  offset + len(paginated_channels) < total,
+        has_more=offset + len(paginated_channels) < total,
     )
 
 
@@ -97,11 +99,11 @@ async def refresh_channel_by_id(
     return channel
 
 
-async def add_new_channel(
+async def create_channel(
     channel_data: ChannelCreate, db_session: AsyncSession, youtube_client: YouTubeAPI
 ) -> Channel:
     """
-    Orchestrates adding a new channel.
+    Orchestrates creating a new channel.
     1. Fetches data from YouTube API.
     2. Checks if channel already exists.
     3. Creates the channel in the database.
@@ -128,7 +130,9 @@ async def add_new_channel(
     yt_channel_data = items[0]
     channel_id = yt_channel_data["id"]
 
-    existing_channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
+    existing_channel = await crud_channel.get_channels(
+        db_session, id=channel_id, first=True
+    )
     if existing_channel:
         raise HTTPException(
             status_code=409, detail="This channel has already been added."
@@ -170,6 +174,7 @@ async def update_channel(
     # Handle tag synchronization
     if payload.tag_ids is not None:
         from .tag_service import sync_entity_tags
+
         await sync_entity_tags(channel, payload.tag_ids, db_session)
 
     return await crud_channel.update_channel(db_session, channel)

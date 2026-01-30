@@ -32,7 +32,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU001",
             is_favorited=True,
             folder_id=1,
-            created_at=now - timedelta(days=1)
+            created_at=now - timedelta(days=1),
         ),
         Channel(
             id="ch002",
@@ -41,7 +41,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU002",
             is_favorited=False,
             folder_id=1,
-            created_at=now - timedelta(days=2)
+            created_at=now - timedelta(days=2),
         ),
         Channel(
             id="ch003",
@@ -50,7 +50,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU003",
             is_favorited=True,
             folder_id=2,
-            created_at=now - timedelta(days=3)
+            created_at=now - timedelta(days=3),
         ),
         Channel(
             id="ch004",
@@ -59,7 +59,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU004",
             is_favorited=False,
             folder_id=None,  # No folder
-            created_at=now - timedelta(days=4)
+            created_at=now - timedelta(days=4),
         ),
         Channel(
             id="ch005",
@@ -68,7 +68,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU005",
             is_favorited=True,
             folder_id=None,
-            created_at=now - timedelta(days=5)
+            created_at=now - timedelta(days=5),
         ),
         Channel(
             id="ch006",
@@ -77,7 +77,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU006",
             is_favorited=False,
             folder_id=2,
-            created_at=now - timedelta(days=6)
+            created_at=now - timedelta(days=6),
         ),
         Channel(
             id="ch007",
@@ -86,7 +86,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU007",
             is_favorited=True,
             folder_id=3,
-            created_at=now - timedelta(days=7)
+            created_at=now - timedelta(days=7),
         ),
         Channel(
             id="ch008",
@@ -95,7 +95,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU008",
             is_favorited=False,
             folder_id=3,
-            created_at=now - timedelta(days=8)
+            created_at=now - timedelta(days=8),
         ),
         Channel(
             id="ch009",
@@ -104,7 +104,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU009",
             is_favorited=True,
             folder_id=1,
-            created_at=now - timedelta(days=9)
+            created_at=now - timedelta(days=9),
         ),
         Channel(
             id="ch010",
@@ -113,7 +113,7 @@ async def sample_channels(db_session):
             uploads_playlist_id="UU010",
             is_favorited=False,
             folder_id=None,
-            created_at=now - timedelta(days=10)
+            created_at=now - timedelta(days=10),
         ),
     ]
 
@@ -126,11 +126,14 @@ async def sample_channels(db_session):
 
 # Basic Filtering Tests
 
+
 @pytest.mark.asyncio
 class TestGetChannelsBasicFiltering:
     """Tests for single-field filtering."""
 
-    async def test_filter_by_id_returns_single_channel(self, db_session, sample_channels):
+    async def test_filter_by_id_returns_single_channel(
+        self, db_session, sample_channels
+    ):
         """Should return exactly one channel when filtering by ID with first=True."""
         result = await get_channels(db_session, id="ch001", first=True)
 
@@ -139,7 +142,9 @@ class TestGetChannelsBasicFiltering:
         assert result.id == "ch001"
         assert result.title == "Tech Tutorials"
 
-    async def test_filter_by_id_returns_list_when_first_false(self, db_session, sample_channels):
+    async def test_filter_by_id_returns_list_when_first_false(
+        self, db_session, sample_channels
+    ):
         """Should return a list with one channel when first=False."""
         results = await get_channels(db_session, id="ch001", first=False)
 
@@ -194,39 +199,30 @@ class TestGetChannelsBasicFiltering:
 
 # Multiple Filter Combination Tests
 
+
 @pytest.mark.asyncio
 class TestGetChannelsMultipleFilters:
     """Tests for combining multiple filters."""
 
     async def test_filter_by_folder_and_is_favorited(self, db_session, sample_channels):
         """Should return favorited channels in specific folder."""
-        results = await get_channels(
-            db_session,
-            folder_id=1,
-            is_favorited=True
-        )
+        results = await get_channels(db_session, folder_id=1, is_favorited=True)
 
         assert len(results) == 2  # ch001, ch009
         assert all(c.folder_id == 1 and c.is_favorited is True for c in results)
 
     async def test_filter_no_folder_and_favorited(self, db_session, sample_channels):
         """Should return favorited channels with no folder."""
-        results = await get_channels(
-            db_session,
-            folder_id=None,
-            is_favorited=True
-        )
+        results = await get_channels(db_session, folder_id=None, is_favorited=True)
 
         assert len(results) == 1  # Only ch005
         assert results[0].id == "ch005"
 
-    async def test_filter_by_folder_and_not_favorited(self, db_session, sample_channels):
+    async def test_filter_by_folder_and_not_favorited(
+        self, db_session, sample_channels
+    ):
         """Should combine folder and is_favorited=False filters."""
-        results = await get_channels(
-            db_session,
-            folder_id=3,
-            is_favorited=False
-        )
+        results = await get_channels(db_session, folder_id=3, is_favorited=False)
 
         assert len(results) == 1  # Only ch008
         assert results[0].id == "ch008"
@@ -236,13 +232,14 @@ class TestGetChannelsMultipleFilters:
         results = await get_channels(
             db_session,
             folder_id=1,
-            title="Python Weekly"  # Python Weekly is in folder 2, not 1
+            title="Python Weekly",  # Python Weekly is in folder 2, not 1
         )
 
         assert results == []
 
 
 # Pagination Tests
+
 
 @pytest.mark.asyncio
 class TestGetChannelsPagination:
@@ -269,12 +266,7 @@ class TestGetChannelsPagination:
 
     async def test_limit_and_offset_with_filters(self, db_session, sample_channels):
         """Should apply pagination after filtering."""
-        results = await get_channels(
-            db_session,
-            is_favorited=True,
-            limit=2,
-            offset=1
-        )
+        results = await get_channels(db_session, is_favorited=True, limit=2, offset=1)
 
         assert len(results) == 2
         assert all(c.is_favorited is True for c in results)
@@ -294,6 +286,7 @@ class TestGetChannelsPagination:
 
 # Ordering Tests
 
+
 @pytest.mark.asyncio
 class TestGetChannelsOrdering:
     """Tests for order_by parameter."""
@@ -301,9 +294,7 @@ class TestGetChannelsOrdering:
     async def test_order_by_title_asc(self, db_session, sample_channels):
         """Should order alphabetically by title (A-Z)."""
         results = await get_channels(
-            db_session,
-            order_by="title",
-            order_direction="asc"
+            db_session, order_by="title", order_direction="asc"
         )
 
         titles = [c.title for c in results]
@@ -312,9 +303,7 @@ class TestGetChannelsOrdering:
     async def test_order_by_title_desc(self, db_session, sample_channels):
         """Should order alphabetically by title (Z-A)."""
         results = await get_channels(
-            db_session,
-            order_by="title",
-            order_direction="desc"
+            db_session, order_by="title", order_direction="desc"
         )
 
         titles = [c.title for c in results]
@@ -323,9 +312,7 @@ class TestGetChannelsOrdering:
     async def test_order_by_handle_asc(self, db_session, sample_channels):
         """Should order alphabetically by handle."""
         results = await get_channels(
-            db_session,
-            order_by="handle",
-            order_direction="asc"
+            db_session, order_by="handle", order_direction="asc"
         )
 
         handles = [c.handle for c in results]
@@ -334,9 +321,7 @@ class TestGetChannelsOrdering:
     async def test_order_by_created_at_desc(self, db_session, sample_channels):
         """Should order by creation date, newest first."""
         results = await get_channels(
-            db_session,
-            order_by="created_at",
-            order_direction="desc"
+            db_session, order_by="created_at", order_direction="desc"
         )
 
         dates = [c.created_at for c in results]
@@ -345,9 +330,7 @@ class TestGetChannelsOrdering:
     async def test_order_by_created_at_asc(self, db_session, sample_channels):
         """Should order by creation date, oldest first."""
         results = await get_channels(
-            db_session,
-            order_by="created_at",
-            order_direction="asc"
+            db_session, order_by="created_at", order_direction="asc"
         )
 
         dates = [c.created_at for c in results]
@@ -364,16 +347,21 @@ class TestGetChannelsOrdering:
 
 # Edge Cases and Error Handling
 
+
 @pytest.mark.asyncio
 class TestGetChannelsEdgeCases:
     """Tests for edge cases and error handling."""
 
-    async def test_invalid_order_by_field_raises_error(self, db_session, sample_channels):
+    async def test_invalid_order_by_field_raises_error(
+        self, db_session, sample_channels
+    ):
         """Should raise ValueError for invalid order_by field."""
         with pytest.raises(ValueError, match="Invalid order_by field"):
             await get_channels(db_session, order_by="nonexistent_field")
 
-    async def test_invalid_order_direction_raises_error(self, db_session, sample_channels):
+    async def test_invalid_order_direction_raises_error(
+        self, db_session, sample_channels
+    ):
         """Should raise ValueError for invalid order direction."""
         with pytest.raises(ValueError, match="order_direction must be 'asc' or 'desc'"):
             await get_channels(db_session, order_direction="sideways")
@@ -384,13 +372,11 @@ class TestGetChannelsEdgeCases:
 
         assert results == []
 
-    async def test_first_true_with_no_results_returns_none(self, db_session, sample_channels):
+    async def test_first_true_with_no_results_returns_none(
+        self, db_session, sample_channels
+    ):
         """Should return None when first=True and no matches found."""
-        result = await get_channels(
-            db_session,
-            id="nonexistent",
-            first=True
-        )
+        result = await get_channels(db_session, id="nonexistent", first=True)
 
         assert result is None
 
@@ -406,6 +392,7 @@ class TestGetChannelsEdgeCases:
 
 
 # Return Type Tests
+
 
 @pytest.mark.asyncio
 class TestGetChannelsReturnTypes:
@@ -434,6 +421,7 @@ class TestGetChannelsReturnTypes:
 
 # Folder Relationship Tests
 
+
 @pytest.mark.asyncio
 class TestGetChannelsFolderRelationships:
     """Tests for folder-related queries."""
@@ -452,13 +440,11 @@ class TestGetChannelsFolderRelationships:
         assert len(results) == 3  # ch004, ch005, ch010
         assert all(c.folder_id is None for c in results)
 
-    async def test_filter_favorited_channels_in_folder(self, db_session, sample_channels):
+    async def test_filter_favorited_channels_in_folder(
+        self, db_session, sample_channels
+    ):
         """Should combine folder filter with favorited status."""
-        results = await get_channels(
-            db_session,
-            folder_id=2,
-            is_favorited=True
-        )
+        results = await get_channels(db_session, folder_id=2, is_favorited=True)
 
         assert len(results) == 1  # Only ch003
         assert results[0].id == "ch003"
@@ -468,6 +454,7 @@ class TestGetChannelsFolderRelationships:
 
 # Combined Filter Tests
 
+
 @pytest.mark.asyncio
 class TestGetChannelsCombinedFilters:
     """Tests for combining multiple filters."""
@@ -475,10 +462,7 @@ class TestGetChannelsCombinedFilters:
     async def test_filter_by_handle_and_folder(self, db_session, sample_channels):
         """Should combine handle and folder_id filters."""
         result = await get_channels(
-            db_session,
-            handle="@techtutorials",
-            folder_id=1,
-            first=True
+            db_session, handle="@techtutorials", folder_id=1, first=True
         )
 
         assert result is not None
@@ -488,10 +472,7 @@ class TestGetChannelsCombinedFilters:
     async def test_combined_filters_with_ordering(self, db_session, sample_channels):
         """Should combine filters with custom ordering."""
         results = await get_channels(
-            db_session,
-            is_favorited=True,
-            order_by="created_at",
-            order_direction="asc"
+            db_session, is_favorited=True, order_by="created_at", order_direction="asc"
         )
 
         assert len(results) == 5
@@ -500,7 +481,9 @@ class TestGetChannelsCombinedFilters:
         dates = [c.created_at for c in results]
         assert dates == sorted(dates)
 
-    async def test_filter_with_ordering_and_pagination(self, db_session, sample_channels):
+    async def test_filter_with_ordering_and_pagination(
+        self, db_session, sample_channels
+    ):
         """Should combine filters, ordering, and pagination."""
         results = await get_channels(
             db_session,
@@ -508,7 +491,7 @@ class TestGetChannelsCombinedFilters:
             order_by="title",
             order_direction="asc",
             limit=2,
-            offset=0
+            offset=0,
         )
 
         assert len(results) == 2

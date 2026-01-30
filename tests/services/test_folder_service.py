@@ -158,7 +158,9 @@ class TestUpdateFolder:
         assert folder.name == "Moved and Renamed"
         assert folder.parent_id == 5
 
-    async def test_update_folder_self_parent_raises_400(self, db_session, sample_folders):
+    async def test_update_folder_self_parent_raises_400(
+        self, db_session, sample_folders
+    ):
         """Test that setting folder as its own parent raises 400."""
         payload = FolderUpdate(parent_id=1)
 
@@ -168,7 +170,9 @@ class TestUpdateFolder:
         assert exc_info.value.status_code == 400
         assert "cannot be its own parent" in exc_info.value.detail.lower()
 
-    async def test_update_folder_nonexistent_parent_raises_404(self, db_session, sample_folders):
+    async def test_update_folder_nonexistent_parent_raises_404(
+        self, db_session, sample_folders
+    ):
         """Test that setting non-existent parent raises 404."""
         payload = FolderUpdate(parent_id=99999)
 
@@ -178,7 +182,9 @@ class TestUpdateFolder:
         assert exc_info.value.status_code == 404
         assert "New parent not found" in exc_info.value.detail
 
-    async def test_update_folder_creates_cycle_raises_400(self, db_session, sample_folders):
+    async def test_update_folder_creates_cycle_raises_400(
+        self, db_session, sample_folders
+    ):
         """Test that creating a cycle raises 400."""
         # Try to move root1 (id=1) under its grandchild (id=4)
         # Hierarchy: root1 -> child1 -> grandchild1
@@ -191,7 +197,9 @@ class TestUpdateFolder:
         assert exc_info.value.status_code == 400
         assert "descendant" in exc_info.value.detail.lower()
 
-    async def test_update_folder_to_direct_child_raises_400(self, db_session, sample_folders):
+    async def test_update_folder_to_direct_child_raises_400(
+        self, db_session, sample_folders
+    ):
         """Test that moving folder under its direct child raises 400."""
         # Try to move root1 (id=1) under child1 (id=2)
         payload = FolderUpdate(parent_id=2)
@@ -222,7 +230,9 @@ class TestUpdateFolder:
         assert folder.id == 3
         assert folder.parent_id == 2  # Now child of child1
 
-    async def test_update_folder_with_none_parent_changed(self, db_session, sample_folders):
+    async def test_update_folder_with_none_parent_changed(
+        self, db_session, sample_folders
+    ):
         """Test that parent_id=None in payload changes parent to None."""
         # child1 (id=2) has parent_id=1
         # Passing parent_id=None should change it to None (i.e., make it a root)

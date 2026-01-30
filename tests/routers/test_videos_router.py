@@ -43,7 +43,7 @@ class TestVideosRouter:
             description="Description 1",
             published_at=datetime.now(timezone.utc),
             duration_seconds=300,
-            is_short=False
+            is_short=False,
         )
         video2 = Video(
             id="video_2",
@@ -52,7 +52,7 @@ class TestVideosRouter:
             description="Description 2",
             published_at=datetime.now(timezone.utc),
             duration_seconds=45,
-            is_short=True
+            is_short=True,
         )
         db_session.add(video1)
         db_session.add(video2)
@@ -89,7 +89,7 @@ class TestVideosRouter:
                 description=f"Description {i}",
                 published_at=datetime.now(timezone.utc),
                 duration_seconds=300,
-                is_short=False
+                is_short=False,
             )
             db_session.add(video)
         await db_session.commit()
@@ -149,7 +149,7 @@ class TestVideosRouter:
             description="Specific Description",
             published_at=datetime.now(timezone.utc),
             duration_seconds=600,
-            is_short=False
+            is_short=False,
         )
         db_session.add(video)
         await db_session.commit()
@@ -198,7 +198,7 @@ class TestVideosRouter:
             description="Description",
             published_at=datetime.now(timezone.utc),
             duration_seconds=300,
-            is_short=False
+            is_short=False,
         )
         video2 = Video(
             id="video_channel2_1",
@@ -207,7 +207,7 @@ class TestVideosRouter:
             description="Description",
             published_at=datetime.now(timezone.utc),
             duration_seconds=300,
-            is_short=False
+            is_short=False,
         )
         db_session.add(video1)
         db_session.add(video2)
@@ -221,7 +221,9 @@ class TestVideosRouter:
         assert len(data) == 1
         assert data[0]["channel_id"] == "UC_channel_1"
 
-    async def test_list_videos_by_channel_with_pagination(self, test_client, db_session):
+    async def test_list_videos_by_channel_with_pagination(
+        self, test_client, db_session
+    ):
         """Test GET /videos/by-channel/{channel_id} with pagination."""
         from app.db.models.channel import Channel
         from app.db.models.video import Video
@@ -245,19 +247,23 @@ class TestVideosRouter:
                 description=f"Description {i}",
                 published_at=datetime.now(timezone.utc),
                 duration_seconds=300,
-                is_short=False
+                is_short=False,
             )
             db_session.add(video)
         await db_session.commit()
 
         # Test with limit
-        response = test_client.get("/videos/by-channel/UC_pagination_by_channel?limit=5")
+        response = test_client.get(
+            "/videos/by-channel/UC_pagination_by_channel?limit=5"
+        )
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 5
 
         # Test with offset
-        response = test_client.get("/videos/by-channel/UC_pagination_by_channel?limit=5&offset=5")
+        response = test_client.get(
+            "/videos/by-channel/UC_pagination_by_channel?limit=5&offset=5"
+        )
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 5

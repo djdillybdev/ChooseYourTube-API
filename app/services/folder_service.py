@@ -4,6 +4,7 @@ from ..db.crud import crud_folder
 from ..db.models.folder import Folder
 from ..schemas.folder import FolderCreate, FolderUpdate, FolderOut, _UNSET
 
+
 def _build_tree(folders: list[Folder]) -> list[FolderOut]:
     nodes: dict[int, FolderOut] = {}
     children_map: dict[int | None, list[int]] = {}
@@ -101,7 +102,9 @@ async def delete_folder_by_id(folder_id: int, db_session: AsyncSession) -> None:
         channel.folder_id = None
 
     # Move child folders up one level
-    children = await crud_folder.get_folders(db_session, parent_id=folder_id, limit=None)
+    children = await crud_folder.get_folders(
+        db_session, parent_id=folder_id, limit=None
+    )
     for child in children:
         child.parent_id = folder.parent_id
 

@@ -17,33 +17,29 @@ class TestDatabaseSessionManagerInit:
 
     def test_init_creates_engine_and_sessionmaker(self):
         """Test that initialization creates engine and sessionmaker."""
-        with patch('app.db.session.create_async_engine') as mock_create_engine:
-            with patch('app.db.session.async_sessionmaker') as mock_sessionmaker:
+        with patch("app.db.session.create_async_engine") as mock_create_engine:
+            with patch("app.db.session.async_sessionmaker") as mock_sessionmaker:
                 mock_engine = MagicMock()
                 mock_create_engine.return_value = mock_engine
 
                 manager = DatabaseSessionManager(
-                    "sqlite+aiosqlite:///:memory:",
-                    engine_kwargs={"echo": True}
+                    "sqlite+aiosqlite:///:memory:", engine_kwargs={"echo": True}
                 )
 
                 # Verify engine was created with correct parameters
                 mock_create_engine.assert_called_once_with(
-                    "sqlite+aiosqlite:///:memory:",
-                    echo=True
+                    "sqlite+aiosqlite:///:memory:", echo=True
                 )
 
                 # Verify sessionmaker was created
                 mock_sessionmaker.assert_called_once_with(
-                    autocommit=False,
-                    bind=mock_engine,
-                    expire_on_commit=False
+                    autocommit=False, bind=mock_engine, expire_on_commit=False
                 )
 
     def test_init_with_empty_engine_kwargs(self):
         """Test initialization with default empty engine_kwargs."""
-        with patch('app.db.session.create_async_engine') as mock_create_engine:
-            with patch('app.db.session.async_sessionmaker'):
+        with patch("app.db.session.create_async_engine") as mock_create_engine:
+            with patch("app.db.session.async_sessionmaker"):
                 manager = DatabaseSessionManager("sqlite+aiosqlite:///:memory:")
 
                 # Verify engine was created with no extra kwargs
@@ -58,8 +54,8 @@ class TestDatabaseSessionManagerClose:
 
     async def test_close_when_engine_is_none_raises(self):
         """Test that close() raises when engine is not initialized."""
-        with patch('app.db.session.create_async_engine'):
-            with patch('app.db.session.async_sessionmaker'):
+        with patch("app.db.session.create_async_engine"):
+            with patch("app.db.session.async_sessionmaker"):
                 manager = DatabaseSessionManager("sqlite+aiosqlite:///:memory:")
                 manager._engine = None  # Simulate uninitialized state
 
@@ -70,8 +66,8 @@ class TestDatabaseSessionManagerClose:
 
     async def test_close_disposes_engine(self):
         """Test that close() disposes the engine properly."""
-        with patch('app.db.session.create_async_engine') as mock_create_engine:
-            with patch('app.db.session.async_sessionmaker'):
+        with patch("app.db.session.create_async_engine") as mock_create_engine:
+            with patch("app.db.session.async_sessionmaker"):
                 mock_engine = AsyncMock()
                 mock_create_engine.return_value = mock_engine
 
@@ -93,8 +89,8 @@ class TestDatabaseSessionManagerConnect:
 
     async def test_connect_when_engine_is_none_raises(self):
         """Test that connect() raises when engine is not initialized."""
-        with patch('app.db.session.create_async_engine'):
-            with patch('app.db.session.async_sessionmaker'):
+        with patch("app.db.session.create_async_engine"):
+            with patch("app.db.session.async_sessionmaker"):
                 manager = DatabaseSessionManager("sqlite+aiosqlite:///:memory:")
                 manager._engine = None  # Simulate uninitialized state
 
@@ -106,8 +102,8 @@ class TestDatabaseSessionManagerConnect:
 
     async def test_connect_yields_connection(self):
         """Test that connect() yields a valid connection."""
-        with patch('app.db.session.create_async_engine') as mock_create_engine:
-            with patch('app.db.session.async_sessionmaker'):
+        with patch("app.db.session.create_async_engine") as mock_create_engine:
+            with patch("app.db.session.async_sessionmaker"):
                 # Create mock engine with begin context manager
                 mock_engine = MagicMock()
                 mock_connection = AsyncMock()
@@ -122,8 +118,8 @@ class TestDatabaseSessionManagerConnect:
 
     async def test_connect_rolls_back_on_exception(self):
         """Test that connect() rolls back on exception."""
-        with patch('app.db.session.create_async_engine') as mock_create_engine:
-            with patch('app.db.session.async_sessionmaker'):
+        with patch("app.db.session.create_async_engine") as mock_create_engine:
+            with patch("app.db.session.async_sessionmaker"):
                 # Create mock engine with begin context manager
                 mock_engine = MagicMock()
                 mock_connection = AsyncMock()
@@ -147,8 +143,8 @@ class TestDatabaseSessionManagerSession:
 
     async def test_session_when_sessionmaker_is_none_raises(self):
         """Test that session() raises when sessionmaker is not initialized."""
-        with patch('app.db.session.create_async_engine'):
-            with patch('app.db.session.async_sessionmaker'):
+        with patch("app.db.session.create_async_engine"):
+            with patch("app.db.session.async_sessionmaker"):
                 manager = DatabaseSessionManager("sqlite+aiosqlite:///:memory:")
                 manager._sessionmaker = None  # Simulate uninitialized state
 
@@ -160,8 +156,8 @@ class TestDatabaseSessionManagerSession:
 
     async def test_session_yields_session(self):
         """Test that session() yields a valid session."""
-        with patch('app.db.session.create_async_engine'):
-            with patch('app.db.session.async_sessionmaker') as mock_sessionmaker_cls:
+        with patch("app.db.session.create_async_engine"):
+            with patch("app.db.session.async_sessionmaker") as mock_sessionmaker_cls:
                 # Create mock session
                 mock_session = AsyncMock(spec=AsyncSession)
                 mock_sessionmaker = MagicMock()
@@ -179,8 +175,8 @@ class TestDatabaseSessionManagerSession:
 
     async def test_session_rolls_back_on_exception(self):
         """Test that session() rolls back on exception."""
-        with patch('app.db.session.create_async_engine'):
-            with patch('app.db.session.async_sessionmaker') as mock_sessionmaker_cls:
+        with patch("app.db.session.create_async_engine"):
+            with patch("app.db.session.async_sessionmaker") as mock_sessionmaker_cls:
                 # Create mock session
                 mock_session = AsyncMock(spec=AsyncSession)
                 mock_sessionmaker = MagicMock()
@@ -202,8 +198,8 @@ class TestDatabaseSessionManagerSession:
 
     async def test_session_cleanup_on_normal_exit(self):
         """Test that session() cleans up on normal exit."""
-        with patch('app.db.session.create_async_engine'):
-            with patch('app.db.session.async_sessionmaker') as mock_sessionmaker_cls:
+        with patch("app.db.session.create_async_engine"):
+            with patch("app.db.session.async_sessionmaker") as mock_sessionmaker_cls:
                 # Create mock session
                 mock_session = AsyncMock(spec=AsyncSession)
                 mock_sessionmaker = MagicMock()
@@ -229,7 +225,7 @@ class TestGetDbSession:
 
     async def test_get_db_session_yields_session(self):
         """Test that get_db_session yields a session from sessionmanager."""
-        with patch('app.db.session.sessionmanager') as mock_manager:
+        with patch("app.db.session.sessionmanager") as mock_manager:
             mock_session = AsyncMock(spec=AsyncSession)
             mock_manager.session.return_value.__aenter__.return_value = mock_session
 

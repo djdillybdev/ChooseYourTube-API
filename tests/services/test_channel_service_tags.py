@@ -34,7 +34,7 @@ async def sample_channel(db_session):
         id="UC001",
         title="Python Tutorials",
         handle="@pythontutorials",
-        uploads_playlist_id="UU001"
+        uploads_playlist_id="UU001",
     )
     return await create_channel(db_session, channel)
 
@@ -80,7 +80,9 @@ class TestUpdateChannelWithTags:
         result_tag_ids = {t.id for t in refreshed.tags}
         assert result_tag_ids == set(new_tag_ids)
 
-    async def test_remove_all_tags_with_empty_list(self, db_session, sample_channel, sample_tags):
+    async def test_remove_all_tags_with_empty_list(
+        self, db_session, sample_channel, sample_tags
+    ):
         """Remove all tags by providing an empty list."""
         # First, add some tags
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
@@ -99,7 +101,9 @@ class TestUpdateChannelWithTags:
         refreshed = await get_channels(db_session, id=sample_channel.id, first=True)
         assert len(refreshed.tags) == 0
 
-    async def test_update_without_tag_ids_preserves_tags(self, db_session, sample_channel, sample_tags):
+    async def test_update_without_tag_ids_preserves_tags(
+        self, db_session, sample_channel, sample_tags
+    ):
         """Updating other fields without tag_ids should preserve existing tags."""
         # Add some tags
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
@@ -115,7 +119,9 @@ class TestUpdateChannelWithTags:
         assert len(refreshed.tags) == 2
         assert refreshed.is_favorited is True
 
-    async def test_add_duplicate_tag_ids_in_list(self, db_session, sample_channel, sample_tags):
+    async def test_add_duplicate_tag_ids_in_list(
+        self, db_session, sample_channel, sample_tags
+    ):
         """Providing duplicate tag IDs in the list should deduplicate."""
         # Provide duplicate IDs
         tag_ids = [sample_tags[0].id, sample_tags[0].id, sample_tags[1].id]
@@ -127,7 +133,9 @@ class TestUpdateChannelWithTags:
         refreshed = await get_channels(db_session, id=sample_channel.id, first=True)
         assert len(refreshed.tags) == 2
 
-    async def test_update_channel_with_nonexistent_tag_raises_error(self, db_session, sample_channel):
+    async def test_update_channel_with_nonexistent_tag_raises_error(
+        self, db_session, sample_channel
+    ):
         """Providing a non-existent tag ID should raise HTTPException."""
         payload = ChannelUpdate(tag_ids=[99999])
 
@@ -137,7 +145,9 @@ class TestUpdateChannelWithTags:
         assert exc_info.value.status_code == 400
         assert "does not exist" in exc_info.value.detail
 
-    async def test_partial_invalid_tag_ids_raises_error(self, db_session, sample_channel, sample_tags):
+    async def test_partial_invalid_tag_ids_raises_error(
+        self, db_session, sample_channel, sample_tags
+    ):
         """Providing a mix of valid and invalid tag IDs should raise error."""
         # Mix valid and invalid IDs
         tag_ids = [sample_tags[0].id, 99999, sample_tags[1].id]
@@ -149,7 +159,9 @@ class TestUpdateChannelWithTags:
 
         assert exc_info.value.status_code == 400
 
-    async def test_update_nonexistent_channel_with_tags_raises_error(self, db_session, sample_tags):
+    async def test_update_nonexistent_channel_with_tags_raises_error(
+        self, db_session, sample_tags
+    ):
         """Updating a non-existent channel should raise 404."""
         payload = ChannelUpdate(tag_ids=[sample_tags[0].id])
 
@@ -164,7 +176,9 @@ class TestUpdateChannelWithTags:
 class TestChannelTagRelationships:
     """Tests for tag relationship access and behavior."""
 
-    async def test_access_tags_through_channel_relationship(self, db_session, sample_channel, sample_tags):
+    async def test_access_tags_through_channel_relationship(
+        self, db_session, sample_channel, sample_tags
+    ):
         """Access tags through channel.tags relationship."""
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
         payload = ChannelUpdate(tag_ids=tag_ids)
@@ -178,7 +192,9 @@ class TestChannelTagRelationships:
         expected_names = {sample_tags[0].name, sample_tags[1].name}
         assert tag_names == expected_names
 
-    async def test_access_channels_through_tag_relationship(self, db_session, sample_tags):
+    async def test_access_channels_through_tag_relationship(
+        self, db_session, sample_tags
+    ):
         """Access channels through tag.channels relationship."""
         # Create multiple channels and add same tag to all
         channels = []
@@ -187,7 +203,7 @@ class TestChannelTagRelationships:
                 id=f"UC{i:03d}",
                 title=f"Channel {i}",
                 handle=f"@channel{i}",
-                uploads_playlist_id=f"UU{i:03d}"
+                uploads_playlist_id=f"UU{i:03d}",
             )
             created = await create_channel(db_session, channel)
             channels.append(created)
@@ -204,7 +220,9 @@ class TestChannelTagRelationships:
         expected_ids = {c.id for c in channels}
         assert channel_ids == expected_ids
 
-    async def test_delete_channel_removes_tag_associations(self, db_session, sample_channel, sample_tags):
+    async def test_delete_channel_removes_tag_associations(
+        self, db_session, sample_channel, sample_tags
+    ):
         """Deleting a channel should remove tag associations but keep the tags."""
         # Add tags to channel
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
@@ -212,14 +230,18 @@ class TestChannelTagRelationships:
         await update_channel(sample_channel.id, payload, db_session)
 
         # Verify associations exist
-        refreshed_channel = await get_channels(db_session, id=sample_channel.id, first=True)
+        refreshed_channel = await get_channels(
+            db_session, id=sample_channel.id, first=True
+        )
         assert len(refreshed_channel.tags) == 2
 
         # Delete the channel
         await delete_channel(db_session, refreshed_channel)
 
         # Verify channel is gone
-        deleted_channel = await get_channels(db_session, id=sample_channel.id, first=True)
+        deleted_channel = await get_channels(
+            db_session, id=sample_channel.id, first=True
+        )
         assert deleted_channel is None
 
         # Verify tags still exist
@@ -238,7 +260,9 @@ class TestChannelTagRelationships:
 class TestChannelTagEdgeCases:
     """Tests for edge cases in channel tag management."""
 
-    async def test_channel_with_many_tags(self, db_session, sample_channel, sample_tags):
+    async def test_channel_with_many_tags(
+        self, db_session, sample_channel, sample_tags
+    ):
         """A channel can have many tags."""
         # Add all tags to the channel
         tag_ids = [t.id for t in sample_tags]
@@ -257,7 +281,7 @@ class TestChannelTagEdgeCases:
                 id=f"UC{i:03d}",
                 title=f"Channel {i}",
                 handle=f"@channel{i}",
-                uploads_playlist_id=f"UU{i:03d}"
+                uploads_playlist_id=f"UU{i:03d}",
             )
             created = await create_channel(db_session, channel)
             channels.append(created)
@@ -270,7 +294,9 @@ class TestChannelTagEdgeCases:
         refreshed_tag = await get_tags(db_session, id=sample_tags[0].id, first=True)
         assert len(refreshed_tag.channels) == 5
 
-    async def test_add_remove_add_tags_multiple_times(self, db_session, sample_channel, sample_tags):
+    async def test_add_remove_add_tags_multiple_times(
+        self, db_session, sample_channel, sample_tags
+    ):
         """Add and remove tags multiple times (idempotent operations)."""
         tag_ids = [sample_tags[0].id]
 
@@ -302,11 +328,7 @@ class TestChannelTagEdgeCases:
         """Update tags along with other channel fields."""
         tag_ids = [sample_tags[0].id, sample_tags[1].id]
 
-        payload = ChannelUpdate(
-            tag_ids=tag_ids,
-            is_favorited=True,
-            folder_id=5
-        )
+        payload = ChannelUpdate(tag_ids=tag_ids, is_favorited=True, folder_id=5)
         await update_channel(sample_channel.id, payload, db_session)
 
         # Verify all fields updated

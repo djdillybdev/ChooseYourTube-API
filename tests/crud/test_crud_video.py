@@ -34,7 +34,7 @@ async def sample_videos(db_session):
             is_short=False,
             is_watched=True,
             published_at=now - timedelta(days=1),
-            duration_seconds=600
+            duration_seconds=600,
         ),
         Video(
             id="vid002",
@@ -44,7 +44,7 @@ async def sample_videos(db_session):
             is_short=True,
             is_watched=False,
             published_at=now - timedelta(days=2),
-            duration_seconds=45
+            duration_seconds=45,
         ),
         Video(
             id="vid003",
@@ -54,7 +54,7 @@ async def sample_videos(db_session):
             is_short=False,
             is_watched=False,
             published_at=now - timedelta(days=3),
-            duration_seconds=1200
+            duration_seconds=1200,
         ),
         Video(
             id="vid004",
@@ -64,7 +64,7 @@ async def sample_videos(db_session):
             is_short=True,
             is_watched=True,
             published_at=now - timedelta(days=4),
-            duration_seconds=50
+            duration_seconds=50,
         ),
         Video(
             id="vid005",
@@ -74,7 +74,7 @@ async def sample_videos(db_session):
             is_short=False,
             is_watched=False,
             published_at=now - timedelta(days=5),
-            duration_seconds=900
+            duration_seconds=900,
         ),
         Video(
             id="vid006",
@@ -84,7 +84,7 @@ async def sample_videos(db_session):
             is_short=False,
             is_watched=False,
             published_at=now - timedelta(days=6),
-            duration_seconds=300
+            duration_seconds=300,
         ),
         Video(
             id="vid007",
@@ -94,7 +94,7 @@ async def sample_videos(db_session):
             is_short=True,
             is_watched=True,
             published_at=now - timedelta(days=7),
-            duration_seconds=30
+            duration_seconds=30,
         ),
         Video(
             id="vid008",
@@ -104,7 +104,7 @@ async def sample_videos(db_session):
             is_short=False,
             is_watched=False,
             published_at=now - timedelta(days=8),
-            duration_seconds=500
+            duration_seconds=500,
         ),
         Video(
             id="vid009",
@@ -114,7 +114,7 @@ async def sample_videos(db_session):
             is_short=False,
             is_watched=True,
             published_at=now - timedelta(days=9),
-            duration_seconds=700
+            duration_seconds=700,
         ),
         Video(
             id="vid010",
@@ -124,7 +124,7 @@ async def sample_videos(db_session):
             is_short=True,
             is_watched=False,
             published_at=now - timedelta(days=10),
-            duration_seconds=55
+            duration_seconds=55,
         ),
     ]
 
@@ -136,6 +136,7 @@ async def sample_videos(db_session):
 
 
 # Basic Filtering Tests
+
 
 @pytest.mark.asyncio
 class TestGetVideosBasicFiltering:
@@ -150,7 +151,9 @@ class TestGetVideosBasicFiltering:
         assert result.id == "vid001"
         assert result.title == "Introduction to Python"
 
-    async def test_filter_by_id_returns_list_when_first_false(self, db_session, sample_videos):
+    async def test_filter_by_id_returns_list_when_first_false(
+        self, db_session, sample_videos
+    ):
         """Should return a list with one video when first=False."""
         results = await get_videos(db_session, id="vid001", first=False)
 
@@ -190,39 +193,31 @@ class TestGetVideosBasicFiltering:
 
 # Multiple Filter Combination Tests
 
+
 @pytest.mark.asyncio
 class TestGetVideosMultipleFilters:
     """Tests for combining multiple filters."""
 
     async def test_filter_by_channel_and_is_short(self, db_session, sample_videos):
         """Should return shorts from specific channel."""
-        results = await get_videos(
-            db_session,
-            channel_id="ch001",
-            is_short=True
-        )
+        results = await get_videos(db_session, channel_id="ch001", is_short=True)
 
         assert len(results) == 3  # vid002, vid007, vid010
         assert all(v.channel_id == "ch001" and v.is_short is True for v in results)
 
     async def test_filter_by_favorited_and_unwatched(self, db_session, sample_videos):
         """Should return favorited videos that haven't been watched yet."""
-        results = await get_videos(
-            db_session,
-            is_favorited=True,
-            is_watched=False
-        )
+        results = await get_videos(db_session, is_favorited=True, is_watched=False)
 
         assert len(results) == 1  # Only vid003
         assert results[0].id == "vid003"
 
-    async def test_filter_by_channel_favorited_and_short(self, db_session, sample_videos):
+    async def test_filter_by_channel_favorited_and_short(
+        self, db_session, sample_videos
+    ):
         """Should combine three filters: channel + favorited + shorts."""
         results = await get_videos(
-            db_session,
-            channel_id="ch001",
-            is_favorited=True,
-            is_short=True
+            db_session, channel_id="ch001", is_favorited=True, is_short=True
         )
 
         assert len(results) == 1  # Only vid007
@@ -235,13 +230,14 @@ class TestGetVideosMultipleFilters:
             channel_id="ch001",
             is_favorited=True,
             is_short=False,
-            is_watched=False
+            is_watched=False,
         )
 
         assert results == []
 
 
 # Pagination Tests
+
 
 @pytest.mark.asyncio
 class TestGetVideosPagination:
@@ -268,12 +264,7 @@ class TestGetVideosPagination:
 
     async def test_limit_and_offset_with_filters(self, db_session, sample_videos):
         """Should apply pagination after filtering."""
-        results = await get_videos(
-            db_session,
-            channel_id="ch001",
-            limit=2,
-            offset=1
-        )
+        results = await get_videos(db_session, channel_id="ch001", limit=2, offset=1)
 
         assert len(results) == 2
         assert all(v.channel_id == "ch001" for v in results)
@@ -293,6 +284,7 @@ class TestGetVideosPagination:
 
 # Ordering Tests
 
+
 @pytest.mark.asyncio
 class TestGetVideosOrdering:
     """Tests for order_by parameter."""
@@ -300,9 +292,7 @@ class TestGetVideosOrdering:
     async def test_order_by_published_at_desc(self, db_session, sample_videos):
         """Should order by published_at descending (newest first)."""
         results = await get_videos(
-            db_session,
-            order_by="published_at",
-            order_direction="desc"
+            db_session, order_by="published_at", order_direction="desc"
         )
 
         # Check dates are in descending order
@@ -312,9 +302,7 @@ class TestGetVideosOrdering:
     async def test_order_by_published_at_asc(self, db_session, sample_videos):
         """Should order by published_at ascending (oldest first)."""
         results = await get_videos(
-            db_session,
-            order_by="published_at",
-            order_direction="asc"
+            db_session, order_by="published_at", order_direction="asc"
         )
 
         dates = [v.published_at for v in results if v.published_at]
@@ -322,11 +310,7 @@ class TestGetVideosOrdering:
 
     async def test_order_by_title_asc(self, db_session, sample_videos):
         """Should order alphabetically by title."""
-        results = await get_videos(
-            db_session,
-            order_by="title",
-            order_direction="asc"
-        )
+        results = await get_videos(db_session, order_by="title", order_direction="asc")
 
         titles = [v.title for v in results]
         assert titles == sorted(titles)
@@ -334,9 +318,7 @@ class TestGetVideosOrdering:
     async def test_order_by_duration_desc(self, db_session, sample_videos):
         """Should order by video duration, longest first."""
         results = await get_videos(
-            db_session,
-            order_by="duration_seconds",
-            order_direction="desc"
+            db_session, order_by="duration_seconds", order_direction="desc"
         )
 
         durations = [v.duration_seconds for v in results if v.duration_seconds]
@@ -353,6 +335,7 @@ class TestGetVideosOrdering:
 
 # Edge Cases and Error Handling
 
+
 @pytest.mark.asyncio
 class TestGetVideosEdgeCases:
     """Tests for edge cases and error handling."""
@@ -367,7 +350,9 @@ class TestGetVideosEdgeCases:
         with pytest.raises(ValueError, match="Invalid order_by field"):
             await get_videos(db_session, order_by="nonexistent_field")
 
-    async def test_invalid_order_direction_raises_error(self, db_session, sample_videos):
+    async def test_invalid_order_direction_raises_error(
+        self, db_session, sample_videos
+    ):
         """Should raise ValueError for invalid order direction."""
         with pytest.raises(ValueError, match="order_direction must be 'asc' or 'desc'"):
             await get_videos(db_session, order_direction="sideways")
@@ -378,13 +363,11 @@ class TestGetVideosEdgeCases:
 
         assert results == []
 
-    async def test_first_true_with_no_results_returns_none(self, db_session, sample_videos):
+    async def test_first_true_with_no_results_returns_none(
+        self, db_session, sample_videos
+    ):
         """Should return None when first=True and no matches found."""
-        result = await get_videos(
-            db_session,
-            id="nonexistent",
-            first=True
-        )
+        result = await get_videos(db_session, id="nonexistent", first=True)
 
         assert result is None
 
@@ -400,6 +383,7 @@ class TestGetVideosEdgeCases:
 
 
 # Return Type Tests
+
 
 @pytest.mark.asyncio
 class TestGetVideosReturnTypes:

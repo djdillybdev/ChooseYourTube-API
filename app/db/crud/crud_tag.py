@@ -2,22 +2,27 @@ from typing import Literal
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.tag import Tag
-from .crud_base import base_get, base_update, _validate_pagination, _validate_order_by_field
+from .crud_base import (
+    base_get,
+    base_update,
+    _validate_pagination,
+    _validate_order_by_field,
+)
 
 
 async def get_tags(
-        db: AsyncSession,
-        *,
-        id: int | None = None,
-        name: str | None = None,
-        # Pagination
-        limit: int | None = None,
-        offset: int = 0,
-        # Ordering
-        order_by: str = "name",
-        order_direction: Literal["asc", "desc"] = "asc",
-        # Return type control
-        first: bool = False
+    db: AsyncSession,
+    *,
+    id: int | None = None,
+    name: str | None = None,
+    # Pagination
+    limit: int | None = None,
+    offset: int = 0,
+    # Ordering
+    order_by: str = "name",
+    order_direction: Literal["asc", "desc"] = "asc",
+    # Return type control
+    first: bool = False,
 ) -> list[Tag] | Tag | None:
     """
     Retrieve tags with flexible filtering, pagination, and ordering.
@@ -51,19 +56,18 @@ async def get_tags(
         filters["name"] = name.lower()
 
     return await base_get(
-        db, Tag,
+        db,
+        Tag,
         filters=filters,
         limit=limit,
         offset=offset,
         order_by=order_by,
         order_direction=order_direction,
-        first=first
+        first=first,
     )
 
 
-async def create_tag(
-    db_session: AsyncSession, tag_to_create: Tag
-) -> Tag:
+async def create_tag(db_session: AsyncSession, tag_to_create: Tag) -> Tag:
     """
     Adds a new Tag instance to the database.
     Tag name will be normalized to lowercase automatically by the Tag model.

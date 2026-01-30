@@ -2,29 +2,34 @@ from typing import Literal
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.channel import Channel
-from .crud_base import base_get, base_update, _validate_pagination, _validate_order_by_field
+from .crud_base import (
+    base_get,
+    base_update,
+    _validate_pagination,
+    _validate_order_by_field,
+)
 
 _UNSET = object()
 
-async def get_channels(
-        db: AsyncSession,
-        *,
-        id: str | None = None,
-        title: str | None = None,
-        handle: str | None = None,
-        description: str | None = None,
-        is_favorited: bool | None = None,
-        folder_id: int | None | object = _UNSET,
-        # Pagination
-        limit: int | None = None,
-        offset: int = 0,
-        # Ordering
-        order_by: str = "title",
-        order_direction: Literal["asc", "desc"] = "asc",
-        # Return type control
-        first: bool = False
-) -> list[Channel] | Channel | None:
 
+async def get_channels(
+    db: AsyncSession,
+    *,
+    id: str | None = None,
+    title: str | None = None,
+    handle: str | None = None,
+    description: str | None = None,
+    is_favorited: bool | None = None,
+    folder_id: int | None | object = _UNSET,
+    # Pagination
+    limit: int | None = None,
+    offset: int = 0,
+    # Ordering
+    order_by: str = "title",
+    order_direction: Literal["asc", "desc"] = "asc",
+    # Return type control
+    first: bool = False,
+) -> list[Channel] | Channel | None:
     _validate_pagination(limit, offset)
 
     if order_direction not in ("asc", "desc"):
@@ -47,13 +52,14 @@ async def get_channels(
         filters["folder_id"] = folder_id
 
     return await base_get(
-        db, Channel,
+        db,
+        Channel,
         filters=filters,
         limit=limit,
         offset=offset,
         order_by=order_by,
         order_direction=order_direction,
-        first=first
+        first=first,
     )
 
 

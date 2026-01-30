@@ -3,7 +3,13 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.video import Video
 from ...schemas.video import VideoCreate
-from .crud_base import base_get, base_update, _validate_pagination, _validate_order_by_field, _validate_filter_field
+from .crud_base import (
+    base_get,
+    base_update,
+    _validate_pagination,
+    _validate_order_by_field,
+    _validate_filter_field,
+)
 
 
 def _apply_video_ordering(query, order_column, order_by: str, order_direction: str):
@@ -59,9 +65,8 @@ async def get_videos(
     # Return type control
     first: bool = False,
     # Catch-all for any other Video field
-    **kwargs: Any
+    **kwargs: Any,
 ) -> list[Video] | Video | None:
-
     _validate_pagination(limit, offset)
 
     if order_direction not in ("asc", "desc"):
@@ -90,14 +95,15 @@ async def get_videos(
         _validate_filter_field(Video, field_name)
 
     return await base_get(
-        db, Video,
+        db,
+        Video,
         filters=filters,
         limit=limit,
         offset=offset,
         order_by=order_by,
         order_direction=order_direction,
         first=first,
-        special_ordering_handler=_apply_video_ordering
+        special_ordering_handler=_apply_video_ordering,
     )
 
 

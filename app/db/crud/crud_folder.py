@@ -1,27 +1,32 @@
 from typing import Literal
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.folder import Folder
-from .crud_base import base_get, base_update, _validate_pagination, _validate_order_by_field
+from .crud_base import (
+    base_get,
+    base_update,
+    _validate_pagination,
+    _validate_order_by_field,
+)
 
 _UNSET = object()
 
-async def get_folders(
-        db: AsyncSession,
-        *,
-        # model params
-        id: int | None = None,
-        name: str | None = None,
-        parent_id: int | None | object = _UNSET,
-        # Pagination
-        limit: int | None = 100,
-        offset: int = 0,
-        # Ordering
-        order_by: str = "name",
-        order_direction: Literal["asc", "desc"] = "asc",
-        # Return type control
-        first: bool = False,
-        ) -> list[Folder] | Folder | None:
 
+async def get_folders(
+    db: AsyncSession,
+    *,
+    # model params
+    id: int | None = None,
+    name: str | None = None,
+    parent_id: int | None | object = _UNSET,
+    # Pagination
+    limit: int | None = 100,
+    offset: int = 0,
+    # Ordering
+    order_by: str = "name",
+    order_direction: Literal["asc", "desc"] = "asc",
+    # Return type control
+    first: bool = False,
+) -> list[Folder] | Folder | None:
     _validate_pagination(limit, offset)
 
     if order_direction not in ("asc", "desc"):
@@ -38,15 +43,15 @@ async def get_folders(
         filters["parent_id"] = parent_id
 
     return await base_get(
-        db, Folder,
+        db,
+        Folder,
         filters=filters,
         limit=limit,
         offset=offset,
         order_by=order_by,
         order_direction=order_direction,
-        first=first
+        first=first,
     )
-
 
 
 async def create_folder(db_session: AsyncSession, folder_to_create: Folder) -> Folder:

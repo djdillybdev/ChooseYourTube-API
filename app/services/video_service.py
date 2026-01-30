@@ -340,11 +340,11 @@ async def get_all_videos(
         from datetime import datetime
 
         if published_after:
-            after_dt = datetime.fromisoformat(published_after.replace('Z', '+00:00'))
+            after_dt = datetime.fromisoformat(published_after.replace("Z", "+00:00"))
             videos = [v for v in videos if v.published_at >= after_dt]
 
         if published_before:
-            before_dt = datetime.fromisoformat(published_before.replace('Z', '+00:00'))
+            before_dt = datetime.fromisoformat(published_before.replace("Z", "+00:00"))
             videos = [v for v in videos if v.published_at <= before_dt]
 
     return PaginatedResponse[VideoOut](
@@ -385,6 +385,7 @@ async def update_video(
     # Handle tag synchronization
     if payload.tag_ids is not None:
         from .tag_service import sync_entity_tags
+
         await sync_entity_tags(video, payload.tag_ids, db_session)
 
     return await crud_video.update_video(db_session, video)

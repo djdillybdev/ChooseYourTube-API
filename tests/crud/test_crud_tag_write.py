@@ -8,7 +8,13 @@ import pytest
 import pytest_asyncio
 from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
-from app.db.crud.crud_tag import create_tag, get_or_create_tag, delete_tag, delete_all_tags, get_tags
+from app.db.crud.crud_tag import (
+    create_tag,
+    get_or_create_tag,
+    delete_tag,
+    delete_all_tags,
+    get_tags,
+)
 from app.db.models.tag import Tag
 
 
@@ -55,7 +61,9 @@ class TestCreateTag:
         assert retrieved is not None
         assert retrieved.name == "react"
 
-    async def test_create_tag_with_duplicate_name_raises_integrity_error(self, db_session):
+    async def test_create_tag_with_duplicate_name_raises_integrity_error(
+        self, db_session
+    ):
         """Creating a tag with duplicate name should raise IntegrityError (unique constraint)."""
         tag1 = Tag(name="database")
         await create_tag(db_session, tag1)
@@ -66,7 +74,9 @@ class TestCreateTag:
         with pytest.raises(IntegrityError):
             await create_tag(db_session, tag2)
 
-    async def test_create_tag_duplicate_name_different_case_raises_error(self, db_session):
+    async def test_create_tag_duplicate_name_different_case_raises_error(
+        self, db_session
+    ):
         """Creating a tag with same name but different case should raise IntegrityError."""
         tag1 = Tag(name="typescript")
         await create_tag(db_session, tag1)
@@ -286,7 +296,9 @@ class TestDeleteTag:
 
         # Delete them one by one
         for i in range(5):
-            tag_to_delete = await get_tags(db_session, name=f"delete-seq-{i}", first=True)
+            tag_to_delete = await get_tags(
+                db_session, name=f"delete-seq-{i}", first=True
+            )
             await delete_tag(db_session, tag_to_delete)
 
         # Verify all gone

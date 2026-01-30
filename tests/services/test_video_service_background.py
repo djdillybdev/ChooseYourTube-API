@@ -52,55 +52,60 @@ class TestFetchAndStoreAllChannelVideosTask:
         """Test successful fetch with a single page of videos."""
         # Mock playlist response (single page, no nextPageToken)
         mock_youtube_api.playlist_items_list_async.return_value = {
-            'items': [
+            "items": [
                 {
-                    'snippet': {'title': 'Video 1'},
-                    'contentDetails': {'videoId': 'video_1'}
+                    "snippet": {"title": "Video 1"},
+                    "contentDetails": {"videoId": "video_1"},
                 },
                 {
-                    'snippet': {'title': 'Video 2'},
-                    'contentDetails': {'videoId': 'video_2'}
+                    "snippet": {"title": "Video 2"},
+                    "contentDetails": {"videoId": "video_2"},
                 },
             ],
-            'nextPageToken': None
+            "nextPageToken": None,
         }
 
         # Mock videos_list response
         mock_youtube_api.videos_list_async.return_value = {
-            'items': [
+            "items": [
                 {
-                    'id': 'video_1',
-                    'snippet': {
-                        'title': 'Video 1',
-                        'description': 'Desc 1',
-                        'publishedAt': '2024-01-01T00:00:00Z',
-                        'thumbnails': {'high': {'url': 'http://thumb1.jpg'}},
-                        'tags': []
+                    "id": "video_1",
+                    "snippet": {
+                        "title": "Video 1",
+                        "description": "Desc 1",
+                        "publishedAt": "2024-01-01T00:00:00Z",
+                        "thumbnails": {"high": {"url": "http://thumb1.jpg"}},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT5M30S'}
+                    "contentDetails": {"duration": "PT5M30S"},
                 },
                 {
-                    'id': 'video_2',
-                    'snippet': {
-                        'title': 'Video 2',
-                        'description': 'Desc 2',
-                        'publishedAt': '2024-01-02T00:00:00Z',
-                        'thumbnails': {'high': {'url': 'http://thumb2.jpg'}},
-                        'tags': []
+                    "id": "video_2",
+                    "snippet": {
+                        "title": "Video 2",
+                        "description": "Desc 2",
+                        "publishedAt": "2024-01-02T00:00:00Z",
+                        "thumbnails": {"high": {"url": "http://thumb2.jpg"}},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT10M'}
+                    "contentDetails": {"duration": "PT10M"},
                 },
             ]
         }
 
-        with patch('app.services.video_service.YouTubeAPI', return_value=mock_youtube_api):
-            with patch('app.services.video_service.sessionmanager.session') as mock_sm:
+        with patch(
+            "app.services.video_service.YouTubeAPI", return_value=mock_youtube_api
+        ):
+            with patch("app.services.video_service.sessionmanager.session") as mock_sm:
                 mock_sm.return_value.__aenter__.return_value = db_session
 
-                await fetch_and_store_all_channel_videos_task(mock_ctx, sample_channel.id)
+                await fetch_and_store_all_channel_videos_task(
+                    mock_ctx, sample_channel.id
+                )
 
         # Verify videos were created
         from app.db.crud.crud_video import get_videos
+
         videos = await get_videos(db_session, channel_id=sample_channel.id)
         assert len(videos) == 2
 
@@ -108,12 +113,16 @@ class TestFetchAndStoreAllChannelVideosTask:
         """Test task exits gracefully when channel doesn't exist."""
         mock_youtube_api = AsyncMock()
 
-        with patch('app.services.video_service.YouTubeAPI', return_value=mock_youtube_api):
-            with patch('app.services.video_service.sessionmanager.session') as mock_sm:
+        with patch(
+            "app.services.video_service.YouTubeAPI", return_value=mock_youtube_api
+        ):
+            with patch("app.services.video_service.sessionmanager.session") as mock_sm:
                 mock_sm.return_value.__aenter__.return_value = db_session
 
                 # Should not raise, just exit
-                await fetch_and_store_all_channel_videos_task(mock_ctx, "UC_nonexistent")
+                await fetch_and_store_all_channel_videos_task(
+                    mock_ctx, "UC_nonexistent"
+                )
 
         # Verify no API calls were made
         mock_youtube_api.playlist_items_list_async.assert_not_called()
@@ -124,53 +133,60 @@ class TestFetchAndStoreAllChannelVideosTask:
         """Test pagination handling with multiple pages."""
         # First page with nextPageToken
         first_page = {
-            'items': [
-                {'snippet': {}, 'contentDetails': {'videoId': 'video_1'}},
+            "items": [
+                {"snippet": {}, "contentDetails": {"videoId": "video_1"}},
             ],
-            'nextPageToken': 'page2_token'
+            "nextPageToken": "page2_token",
         }
 
         # Second page without nextPageToken
         second_page = {
-            'items': [
-                {'snippet': {}, 'contentDetails': {'videoId': 'video_2'}},
+            "items": [
+                {"snippet": {}, "contentDetails": {"videoId": "video_2"}},
             ],
-            'nextPageToken': None
+            "nextPageToken": None,
         }
 
-        mock_youtube_api.playlist_items_list_async.side_effect = [first_page, second_page]
+        mock_youtube_api.playlist_items_list_async.side_effect = [
+            first_page,
+            second_page,
+        ]
 
         # Mock videos_list response
         mock_youtube_api.videos_list_async.return_value = {
-            'items': [
+            "items": [
                 {
-                    'id': 'video_1',
-                    'snippet': {
-                        'title': 'Video 1',
-                        'publishedAt': '2024-01-01T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "video_1",
+                    "snippet": {
+                        "title": "Video 1",
+                        "publishedAt": "2024-01-01T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT5M'}
+                    "contentDetails": {"duration": "PT5M"},
                 },
                 {
-                    'id': 'video_2',
-                    'snippet': {
-                        'title': 'Video 2',
-                        'publishedAt': '2024-01-02T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "video_2",
+                    "snippet": {
+                        "title": "Video 2",
+                        "publishedAt": "2024-01-02T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT10M'}
+                    "contentDetails": {"duration": "PT10M"},
                 },
             ]
         }
 
-        with patch('app.services.video_service.YouTubeAPI', return_value=mock_youtube_api):
-            with patch('app.services.video_service.sessionmanager.session') as mock_sm:
+        with patch(
+            "app.services.video_service.YouTubeAPI", return_value=mock_youtube_api
+        ):
+            with patch("app.services.video_service.sessionmanager.session") as mock_sm:
                 mock_sm.return_value.__aenter__.return_value = db_session
 
-                await fetch_and_store_all_channel_videos_task(mock_ctx, sample_channel.id)
+                await fetch_and_store_all_channel_videos_task(
+                    mock_ctx, sample_channel.id
+                )
 
         # Verify playlist_items_list_async was called twice (pagination)
         assert mock_youtube_api.playlist_items_list_async.call_count == 2
@@ -181,63 +197,71 @@ class TestFetchAndStoreAllChannelVideosTask:
         """Test that duplicate video IDs are deduplicated."""
         # Mock playlist with duplicate video IDs
         mock_youtube_api.playlist_items_list_async.return_value = {
-            'items': [
-                {'snippet': {}, 'contentDetails': {'videoId': 'video_1'}},
-                {'snippet': {}, 'contentDetails': {'videoId': 'video_1'}},  # Duplicate
-                {'snippet': {}, 'contentDetails': {'videoId': 'video_2'}},
+            "items": [
+                {"snippet": {}, "contentDetails": {"videoId": "video_1"}},
+                {"snippet": {}, "contentDetails": {"videoId": "video_1"}},  # Duplicate
+                {"snippet": {}, "contentDetails": {"videoId": "video_2"}},
             ],
-            'nextPageToken': None
+            "nextPageToken": None,
         }
 
         mock_youtube_api.videos_list_async.return_value = {
-            'items': [
+            "items": [
                 {
-                    'id': 'video_1',
-                    'snippet': {
-                        'title': 'Video 1',
-                        'publishedAt': '2024-01-01T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "video_1",
+                    "snippet": {
+                        "title": "Video 1",
+                        "publishedAt": "2024-01-01T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT5M'}
+                    "contentDetails": {"duration": "PT5M"},
                 },
                 {
-                    'id': 'video_2',
-                    'snippet': {
-                        'title': 'Video 2',
-                        'publishedAt': '2024-01-02T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "video_2",
+                    "snippet": {
+                        "title": "Video 2",
+                        "publishedAt": "2024-01-02T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT10M'}
+                    "contentDetails": {"duration": "PT10M"},
                 },
             ]
         }
 
-        with patch('app.services.video_service.YouTubeAPI', return_value=mock_youtube_api):
-            with patch('app.services.video_service.sessionmanager.session') as mock_sm:
+        with patch(
+            "app.services.video_service.YouTubeAPI", return_value=mock_youtube_api
+        ):
+            with patch("app.services.video_service.sessionmanager.session") as mock_sm:
                 mock_sm.return_value.__aenter__.return_value = db_session
 
-                await fetch_and_store_all_channel_videos_task(mock_ctx, sample_channel.id)
+                await fetch_and_store_all_channel_videos_task(
+                    mock_ctx, sample_channel.id
+                )
 
         # Verify videos_list was called with deduplicated IDs (video_1,video_2)
         call_args = mock_youtube_api.videos_list_async.call_args
-        assert 'video_1,video_2' in call_args[1]['id']
+        assert "video_1,video_2" in call_args[1]["id"]
 
     async def test_fetch_all_videos_no_videos_found(
         self, db_session, sample_channel, mock_ctx, mock_youtube_api
     ):
         """Test task exits when playlist is empty."""
         mock_youtube_api.playlist_items_list_async.return_value = {
-            'items': [],
-            'nextPageToken': None
+            "items": [],
+            "nextPageToken": None,
         }
 
-        with patch('app.services.video_service.YouTubeAPI', return_value=mock_youtube_api):
-            with patch('app.services.video_service.sessionmanager.session') as mock_sm:
+        with patch(
+            "app.services.video_service.YouTubeAPI", return_value=mock_youtube_api
+        ):
+            with patch("app.services.video_service.sessionmanager.session") as mock_sm:
                 mock_sm.return_value.__aenter__.return_value = db_session
 
-                await fetch_and_store_all_channel_videos_task(mock_ctx, sample_channel.id)
+                await fetch_and_store_all_channel_videos_task(
+                    mock_ctx, sample_channel.id
+                )
 
         # Verify videos_list was NOT called (no video IDs)
         mock_youtube_api.videos_list_async.assert_not_called()
@@ -256,8 +280,10 @@ class TestRefreshLatestChannelVideosTask:
         empty_feed.entries = []
         mock_feedparser.return_value = empty_feed
 
-        with patch('app.services.video_service.YouTubeAPI', return_value=mock_youtube_api):
-            with patch('app.services.video_service.sessionmanager.session') as mock_sm:
+        with patch(
+            "app.services.video_service.YouTubeAPI", return_value=mock_youtube_api
+        ):
+            with patch("app.services.video_service.sessionmanager.session") as mock_sm:
                 mock_sm.return_value.__aenter__.return_value = db_session
 
                 await refresh_latest_channel_videos_task(mock_ctx, sample_channel.id)
@@ -271,7 +297,12 @@ class TestRefreshLatestChannelVideos:
     """Test refresh_latest_channel_videos service function."""
 
     async def test_refresh_parses_rss_feed(
-        self, db_session, sample_channel, mock_youtube_api, mock_feedparser, sample_rss_feed
+        self,
+        db_session,
+        sample_channel,
+        mock_youtube_api,
+        mock_feedparser,
+        sample_rss_feed,
     ):
         """Test that RSS feed is parsed correctly."""
         mock_feedparser.return_value = sample_rss_feed
@@ -282,30 +313,34 @@ class TestRefreshLatestChannelVideos:
 
         existing_videos = [
             VideoCreate(
-                id='rss_video_1',
+                id="rss_video_1",
                 channel_id=sample_channel.id,
-                title='RSS Video 1',
-                description='Description 1',
+                title="RSS Video 1",
+                description="Description 1",
                 published_at=datetime.now(timezone.utc),
                 duration_seconds=300,
-                is_short=False
+                is_short=False,
             ),
             VideoCreate(
-                id='rss_video_2',
+                id="rss_video_2",
                 channel_id=sample_channel.id,
-                title='RSS Video 2',
-                description='Description 2',
+                title="RSS Video 2",
+                description="Description 2",
                 published_at=datetime.now(timezone.utc),
                 duration_seconds=400,
-                is_short=False
+                is_short=False,
             ),
         ]
         await create_videos_bulk(db_session, existing_videos)
 
-        await refresh_latest_channel_videos(sample_channel.id, db_session, mock_youtube_api)
+        await refresh_latest_channel_videos(
+            sample_channel.id, db_session, mock_youtube_api
+        )
 
         # Verify feedparser was called with correct URL
-        expected_url = f"https://www.youtube.com/feeds/videos.xml?channel_id={sample_channel.id}"
+        expected_url = (
+            f"https://www.youtube.com/feeds/videos.xml?channel_id={sample_channel.id}"
+        )
         mock_feedparser.assert_called_once_with(expected_url)
 
     async def test_refresh_filters_shorts_from_rss(
@@ -315,19 +350,27 @@ class TestRefreshLatestChannelVideos:
         # RSS feed with shorts and regular videos
         rss_feed_with_shorts = MagicMock()
         rss_feed_with_shorts.entries = [
-            MagicMock(yt_videoid='regular_1', link='https://youtube.com/watch?v=regular_1'),
-            MagicMock(yt_videoid='short_1', link='https://youtube.com/shorts/short_1'),  # Short
-            MagicMock(yt_videoid='regular_2', link='https://youtube.com/watch?v=regular_2'),
+            MagicMock(
+                yt_videoid="regular_1", link="https://youtube.com/watch?v=regular_1"
+            ),
+            MagicMock(
+                yt_videoid="short_1", link="https://youtube.com/shorts/short_1"
+            ),  # Short
+            MagicMock(
+                yt_videoid="regular_2", link="https://youtube.com/watch?v=regular_2"
+            ),
         ]
         mock_feedparser.return_value = rss_feed_with_shorts
 
         # No existing videos (will trigger API fallback)
         mock_youtube_api.playlist_items_list_async.return_value = {
-            'items': [],
-            'nextPageToken': None
+            "items": [],
+            "nextPageToken": None,
         }
 
-        await refresh_latest_channel_videos(sample_channel.id, db_session, mock_youtube_api)
+        await refresh_latest_channel_videos(
+            sample_channel.id, db_session, mock_youtube_api
+        )
 
         # RSS should have filtered shorts, leaving only regular_1 and regular_2
         # Since no overlap, API is called
@@ -339,8 +382,8 @@ class TestRefreshLatestChannelVideos:
         """Test early return when all RSS videos are already in database."""
         rss_feed = MagicMock()
         rss_feed.entries = [
-            MagicMock(yt_videoid='video_1', link='https://youtube.com/watch?v=video_1'),
-            MagicMock(yt_videoid='video_2', link='https://youtube.com/watch?v=video_2'),
+            MagicMock(yt_videoid="video_1", link="https://youtube.com/watch?v=video_1"),
+            MagicMock(yt_videoid="video_2", link="https://youtube.com/watch?v=video_2"),
         ]
         mock_feedparser.return_value = rss_feed
 
@@ -350,27 +393,29 @@ class TestRefreshLatestChannelVideos:
 
         existing_videos = [
             VideoCreate(
-                id='video_1',
+                id="video_1",
                 channel_id=sample_channel.id,
-                title='Video 1',
-                description='Description 1',
+                title="Video 1",
+                description="Description 1",
                 published_at=datetime.now(timezone.utc),
                 duration_seconds=300,
-                is_short=False
+                is_short=False,
             ),
             VideoCreate(
-                id='video_2',
+                id="video_2",
                 channel_id=sample_channel.id,
-                title='Video 2',
-                description='Description 2',
+                title="Video 2",
+                description="Description 2",
                 published_at=datetime.now(timezone.utc),
                 duration_seconds=400,
-                is_short=False
+                is_short=False,
             ),
         ]
         await create_videos_bulk(db_session, existing_videos)
 
-        await refresh_latest_channel_videos(sample_channel.id, db_session, mock_youtube_api)
+        await refresh_latest_channel_videos(
+            sample_channel.id, db_session, mock_youtube_api
+        )
 
         # Should early return without calling YouTube API
         mock_youtube_api.playlist_items_list_async.assert_not_called()
@@ -382,8 +427,13 @@ class TestRefreshLatestChannelVideos:
         """Test partial overlap - some videos new, some existing."""
         rss_feed = MagicMock()
         rss_feed.entries = [
-            MagicMock(yt_videoid='new_video', link='https://youtube.com/watch?v=new_video'),
-            MagicMock(yt_videoid='existing_video', link='https://youtube.com/watch?v=existing_video'),
+            MagicMock(
+                yt_videoid="new_video", link="https://youtube.com/watch?v=new_video"
+            ),
+            MagicMock(
+                yt_videoid="existing_video",
+                link="https://youtube.com/watch?v=existing_video",
+            ),
         ]
         mock_feedparser.return_value = rss_feed
 
@@ -393,44 +443,46 @@ class TestRefreshLatestChannelVideos:
 
         existing_videos = [
             VideoCreate(
-                id='existing_video',
+                id="existing_video",
                 channel_id=sample_channel.id,
-                title='Existing Video',
-                description='Existing description',
+                title="Existing Video",
+                description="Existing description",
                 published_at=datetime.now(timezone.utc),
                 duration_seconds=300,
-                is_short=False
+                is_short=False,
             ),
         ]
         await create_videos_bulk(db_session, existing_videos)
 
         # Mock videos_list response for new video
         mock_youtube_api.videos_list_async.return_value = {
-            'items': [
+            "items": [
                 {
-                    'id': 'new_video',
-                    'snippet': {
-                        'title': 'New Video',
-                        'publishedAt': '2024-01-01T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "new_video",
+                    "snippet": {
+                        "title": "New Video",
+                        "publishedAt": "2024-01-01T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT5M'}
+                    "contentDetails": {"duration": "PT5M"},
                 },
                 {
-                    'id': 'existing_video',
-                    'snippet': {
-                        'title': 'Existing Video',
-                        'publishedAt': '2024-01-02T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "existing_video",
+                    "snippet": {
+                        "title": "Existing Video",
+                        "publishedAt": "2024-01-02T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT5M'}
+                    "contentDetails": {"duration": "PT5M"},
                 },
             ]
         }
 
-        await refresh_latest_channel_videos(sample_channel.id, db_session, mock_youtube_api)
+        await refresh_latest_channel_videos(
+            sample_channel.id, db_session, mock_youtube_api
+        )
 
         # Should use RSS IDs for update (partial overlap)
         mock_youtube_api.videos_list_async.assert_called_once()
@@ -441,37 +493,34 @@ class TestRefreshLatestChannelVideos:
         """Test fallback to API when no overlap with RSS feed."""
         rss_feed = MagicMock()
         rss_feed.entries = [
-            MagicMock(yt_videoid='video_1', link='https://youtube.com/watch?v=video_1'),
+            MagicMock(yt_videoid="video_1", link="https://youtube.com/watch?v=video_1"),
         ]
         mock_feedparser.return_value = rss_feed
 
         # No existing videos in database
         mock_youtube_api.playlist_items_list_async.return_value = {
-            'items': [
-                {
-                    'snippet': {},
-                    'contentDetails': {'videoId': 'video_1'}
-                }
-            ],
-            'nextPageToken': None
+            "items": [{"snippet": {}, "contentDetails": {"videoId": "video_1"}}],
+            "nextPageToken": None,
         }
 
         mock_youtube_api.videos_list_async.return_value = {
-            'items': [
+            "items": [
                 {
-                    'id': 'video_1',
-                    'snippet': {
-                        'title': 'Video 1',
-                        'publishedAt': '2024-01-01T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "video_1",
+                    "snippet": {
+                        "title": "Video 1",
+                        "publishedAt": "2024-01-01T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT5M'}
+                    "contentDetails": {"duration": "PT5M"},
                 },
             ]
         }
 
-        await refresh_latest_channel_videos(sample_channel.id, db_session, mock_youtube_api)
+        await refresh_latest_channel_videos(
+            sample_channel.id, db_session, mock_youtube_api
+        )
 
         # Should call playlist API (no overlap)
         mock_youtube_api.playlist_items_list_async.assert_called_once()
@@ -482,12 +531,14 @@ class TestRefreshLatestChannelVideos:
         """Test refresh exits when channel not found in database."""
         rss_feed = MagicMock()
         rss_feed.entries = [
-            MagicMock(yt_videoid='video_1', link='https://youtube.com/watch?v=video_1'),
+            MagicMock(yt_videoid="video_1", link="https://youtube.com/watch?v=video_1"),
         ]
         mock_feedparser.return_value = rss_feed
 
         # No channel exists
-        await refresh_latest_channel_videos("UC_nonexistent", db_session, mock_youtube_api)
+        await refresh_latest_channel_videos(
+            "UC_nonexistent", db_session, mock_youtube_api
+        )
 
         # Should not call API (channel not found in DB)
         mock_youtube_api.playlist_items_list_async.assert_not_called()
@@ -506,22 +557,24 @@ class TestCreateAndUpdateVideos:
 
         # Mock videos_list to return matching items
         mock_youtube_api.videos_list_async.return_value = {
-            'items': [
+            "items": [
                 {
-                    'id': f'video_{i}',
-                    'snippet': {
-                        'title': f'Video {i}',
-                        'publishedAt': '2024-01-01T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": f"video_{i}",
+                    "snippet": {
+                        "title": f"Video {i}",
+                        "publishedAt": "2024-01-01T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT5M'}
+                    "contentDetails": {"duration": "PT5M"},
                 }
                 for i in range(50)  # First batch
             ]
         }
 
-        await create_and_update_videos(video_ids, sample_channel.id, db_session, mock_youtube_api)
+        await create_and_update_videos(
+            video_ids, sample_channel.id, db_session, mock_youtube_api
+        )
 
         # Verify videos_list_async was called twice (2 batches)
         assert mock_youtube_api.videos_list_async.call_count == 2
@@ -530,67 +583,75 @@ class TestCreateAndUpdateVideos:
         self, db_session, sample_channel, mock_youtube_api
     ):
         """Test that ISO8601 duration is parsed correctly."""
-        video_ids = ['video_1']
+        video_ids = ["video_1"]
 
         mock_youtube_api.videos_list_async.return_value = {
-            'items': [
+            "items": [
                 {
-                    'id': 'video_1',
-                    'snippet': {
-                        'title': 'Video 1',
-                        'publishedAt': '2024-01-01T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "video_1",
+                    "snippet": {
+                        "title": "Video 1",
+                        "publishedAt": "2024-01-01T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT10M30S'}  # 10 minutes 30 seconds
+                    "contentDetails": {"duration": "PT10M30S"},  # 10 minutes 30 seconds
                 }
             ]
         }
 
-        await create_and_update_videos(video_ids, sample_channel.id, db_session, mock_youtube_api)
+        await create_and_update_videos(
+            video_ids, sample_channel.id, db_session, mock_youtube_api
+        )
 
         # Verify video was created with parsed duration (630 seconds)
         from app.db.crud.crud_video import get_videos
-        videos = await get_videos(db_session, id='video_1', first=True)
+
+        videos = await get_videos(db_session, id="video_1", first=True)
         assert videos.duration_seconds == 630
 
     async def test_create_and_update_classifies_shorts(
         self, db_session, sample_channel, mock_youtube_api
     ):
         """Test that videos are classified as shorts based on duration and tags."""
-        video_ids = ['short_video', 'regular_video']
+        video_ids = ["short_video", "regular_video"]
 
         mock_youtube_api.videos_list_async.return_value = {
-            'items': [
+            "items": [
                 {
-                    'id': 'short_video',
-                    'snippet': {
-                        'title': 'My Short #shorts',
-                        'publishedAt': '2024-01-01T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "short_video",
+                    "snippet": {
+                        "title": "My Short #shorts",
+                        "publishedAt": "2024-01-01T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT30S'}  # 30 seconds with #shorts tag
+                    "contentDetails": {
+                        "duration": "PT30S"
+                    },  # 30 seconds with #shorts tag
                 },
                 {
-                    'id': 'regular_video',
-                    'snippet': {
-                        'title': 'Regular Video',
-                        'publishedAt': '2024-01-02T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "id": "regular_video",
+                    "snippet": {
+                        "title": "Regular Video",
+                        "publishedAt": "2024-01-02T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT10M'}  # 10 minutes
-                }
+                    "contentDetails": {"duration": "PT10M"},  # 10 minutes
+                },
             ]
         }
 
-        await create_and_update_videos(video_ids, sample_channel.id, db_session, mock_youtube_api)
+        await create_and_update_videos(
+            video_ids, sample_channel.id, db_session, mock_youtube_api
+        )
 
         # Verify classification
         from app.db.crud.crud_video import get_videos
-        short_video = await get_videos(db_session, id='short_video', first=True)
-        regular_video = await get_videos(db_session, id='regular_video', first=True)
+
+        short_video = await get_videos(db_session, id="short_video", first=True)
+        regular_video = await get_videos(db_session, id="regular_video", first=True)
 
         assert short_video.is_short is True  # Short duration + #shorts tag
         assert regular_video.is_short is False  # Long duration
@@ -599,27 +660,30 @@ class TestCreateAndUpdateVideos:
         self, db_session, sample_channel, mock_youtube_api
     ):
         """Test that videos without IDs are skipped."""
-        video_ids = ['video_1']
+        video_ids = ["video_1"]
 
         # Mock response with item missing 'id' field
         mock_youtube_api.videos_list_async.return_value = {
-            'items': [
+            "items": [
                 {
                     # Missing 'id' field
-                    'snippet': {
-                        'title': 'Video without ID',
-                        'publishedAt': '2024-01-01T00:00:00Z',
-                        'thumbnails': {},
-                        'tags': []
+                    "snippet": {
+                        "title": "Video without ID",
+                        "publishedAt": "2024-01-01T00:00:00Z",
+                        "thumbnails": {},
+                        "tags": [],
                     },
-                    'contentDetails': {'duration': 'PT5M'}
+                    "contentDetails": {"duration": "PT5M"},
                 }
             ]
         }
 
-        await create_and_update_videos(video_ids, sample_channel.id, db_session, mock_youtube_api)
+        await create_and_update_videos(
+            video_ids, sample_channel.id, db_session, mock_youtube_api
+        )
 
         # Verify no videos were created (invalid item was skipped)
         from app.db.crud.crud_video import get_videos
+
         videos = await get_videos(db_session, channel_id=sample_channel.id)
         assert len(videos) == 0
