@@ -27,11 +27,40 @@ async def get_channel_by_id(channel_id: str, db_session: AsyncSession) -> Channe
     return channel
 
 
-async def get_all_channels(db_session: AsyncSession) -> list[Channel]:
+async def get_all_channels(
+    db_session: AsyncSession,
+    is_favorited: bool | None = None,
+    folder_id: int | None = None,
+    tag_id: int | None = None,
+) -> list[Channel]:
     """
-    Retrieves all channels.
+    Retrieves all channels with optional filtering.
+
+    Args:
+        db_session: Database session
+        is_favorited: Filter by favorited status
+        folder_id: Filter by folder ID (use 0 for root/no folder)
+        tag_id: Filter by tag ID
+
+    Returns:
+        List of Channel instances matching the filters
     """
-    return await crud_channel.get_channels(db_session)
+    # Build filter kwargs
+    filters = {}
+    if is_favorited is not None:
+        filters["is_favorited"] = is_favorited
+    if folder_id is not None:
+        # Support folder_id=0 to mean "no folder" (None in database)
+        filters["folder_id"] = None if folder_id == 0 else folder_id
+
+    # Get channels from CRUD layer
+    channels = await crud_channel.get_channels(db_session, **filters)
+
+    # Post-filter for tag_id (since tags are a relationship, not a direct field)
+    if tag_id is not None:
+        channels = [c for c in channels if any(tag.id == tag_id for tag in c.tags)]
+
+    return channels
 
 
 async def refresh_channel_by_id(

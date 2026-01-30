@@ -156,7 +156,7 @@ async def base_update(db: AsyncSession, model_instance: ModelType) -> ModelType:
     Example:
         folder = await crud_folder.get_folders(db, id=1, first=True)
         folder.name = "New Name"
-        updated_folder = await crud_folder.update(db, folder)
+        updated_folder = await crud_folder.update_folder(db, folder)
     """
     await db.commit()
     await db.refresh(model_instance)

@@ -7,7 +7,7 @@ Tests create() and delete() methods from crud_folder.
 import pytest
 import pytest_asyncio
 from sqlalchemy.exc import IntegrityError
-from app.db.crud.crud_folder import create, delete_folder, get_folders
+from app.db.crud.crud_folder import create_folder, delete_folder, get_folders
 from app.db.models.folder import Folder
 
 
@@ -19,7 +19,7 @@ class TestCreateFolder:
         """Create a root folder (no parent)."""
         folder = Folder(name="Root Folder")
 
-        result = await create(db_session, folder)
+        result = await create_folder(db_session, folder)
 
         assert result.name == "Root Folder"
         assert result.parent_id is None
@@ -29,11 +29,11 @@ class TestCreateFolder:
         """Create a folder with a parent folder."""
         # Create parent first
         parent = Folder(name="Parent Folder")
-        parent = await create(db_session, parent)
+        parent = await create_folder(db_session, parent)
 
         # Create child
         child = Folder(name="Child Folder", parent_id=parent.id)
-        result = await create(db_session, child)
+        result = await create_folder(db_session, child)
 
         assert result.name == "Child Folder"
         assert result.parent_id == parent.id
@@ -41,7 +41,7 @@ class TestCreateFolder:
     async def test_create_folder_persists_to_database(self, db_session):
         """Verify folder is persisted and retrievable."""
         folder = Folder(name="Persisted Folder")
-        created = await create(db_session, folder)
+        created = await create_folder(db_session, folder)
 
         # Retrieve it
         retrieved = await get_folders(db_session, id=created.id, first=True)
@@ -53,8 +53,8 @@ class TestCreateFolder:
         folder1 = Folder(name="Duplicate Name")
         folder2 = Folder(name="Duplicate Name")
 
-        result1 = await create(db_session, folder1)
-        result2 = await create(db_session, folder2)
+        result1 = await create_folder(db_session, folder1)
+        result2 = await create_folder(db_session, folder2)
 
         assert result1.name == "Duplicate Name"
         assert result2.name == "Duplicate Name"
@@ -64,15 +64,15 @@ class TestCreateFolder:
         """Create a deep folder hierarchy (3+ levels)."""
         # Level 1
         level1 = Folder(name="Level 1")
-        level1 = await create(db_session, level1)
+        level1 = await create_folder(db_session, level1)
 
         # Level 2
         level2 = Folder(name="Level 2", parent_id=level1.id)
-        level2 = await create(db_session, level2)
+        level2 = await create_folder(db_session, level2)
 
         # Level 3
         level3 = Folder(name="Level 3", parent_id=level2.id)
-        level3 = await create(db_session, level3)
+        level3 = await create_folder(db_session, level3)
 
         # Verify hierarchy
         assert level1.parent_id is None
@@ -88,7 +88,7 @@ class TestCreateFolder:
         folder = Folder(name="Orphan Folder", parent_id=99999)
 
         # SQLite allows this, PostgreSQL would raise IntegrityError
-        result = await create(db_session, folder)
+        result = await create_folder(db_session, folder)
         assert result.parent_id == 99999
 
     async def test_create_multiple_root_folders(self, db_session):
@@ -97,7 +97,7 @@ class TestCreateFolder:
 
         created_folders = []
         for folder in folders:
-            result = await create(db_session, folder)
+            result = await create_folder(db_session, folder)
             created_folders.append(result)
 
         # Verify all are roots
@@ -116,7 +116,7 @@ class TestDeleteFolder:
     async def test_delete_folder_without_children(self, db_session):
         """Delete a folder that has no children."""
         folder = Folder(name="To Delete")
-        folder = await create(db_session, folder)
+        folder = await create_folder(db_session, folder)
 
         await delete_folder(db_session, folder)
 
@@ -132,13 +132,13 @@ class TestDeleteFolder:
         """
         # Create parent
         parent = Folder(name="Parent")
-        parent = await create(db_session, parent)
+        parent = await create_folder(db_session, parent)
 
         # Create children
         child1 = Folder(name="Child 1", parent_id=parent.id)
         child2 = Folder(name="Child 2", parent_id=parent.id)
-        await create(db_session, child1)
-        await create(db_session, child2)
+        await create_folder(db_session, child1)
+        await create_folder(db_session, child2)
 
         # Delete parent
         await delete_folder(db_session, parent)
@@ -151,12 +151,11 @@ class TestDeleteFolder:
         """Deleting a child folder should not affect the parent."""
         # Create parent
         parent = Folder(name="Parent")
-        parent = await create(db_session, parent)
+        parent = await create_folder(db_session, parent)
 
         # Create child
         child = Folder(name="Child", parent_id=parent.id)
-        child = await create(db_session, child)
-
+        child = await create_folder(db_session, child)
         # Delete child
         await delete_folder(db_session, child)
 
@@ -171,7 +170,7 @@ class TestDeleteFolder:
         folders = [Folder(name=f"Folder {i}") for i in range(3)]
         created = []
         for folder in folders:
-            result = await create(db_session, folder)
+            result = await create_folder(db_session, folder)
             created.append(result)
 
         # Delete all
@@ -186,13 +185,13 @@ class TestDeleteFolder:
         """Delete a folder in the middle of a hierarchy."""
         # Create hierarchy: Root -> Middle -> Leaf
         root = Folder(name="Root")
-        root = await create(db_session, root)
+        root = await create_folder(db_session, root)
 
         middle = Folder(name="Middle", parent_id=root.id)
-        middle = await create(db_session, middle)
+        middle = await create_folder(db_session, middle)
 
         leaf = Folder(name="Leaf", parent_id=middle.id)
-        leaf = await create(db_session, leaf)
+        leaf = await create_folder(db_session, leaf)
 
         # Delete middle folder
         await delete_folder(db_session, middle)

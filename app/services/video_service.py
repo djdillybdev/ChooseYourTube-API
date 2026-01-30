@@ -284,9 +284,68 @@ async def get_video_by_id(video_id: str, db_session: AsyncSession) -> Video:
 
 
 async def get_all_videos(
-    db_session: AsyncSession, limit: int = 50, offset: int = 0
+    db_session: AsyncSession,
+    limit: int = 50,
+    offset: int = 0,
+    is_favorited: bool | None = None,
+    is_watched: bool | None = None,
+    is_short: bool | None = None,
+    channel_id: str | None = None,
+    tag_id: int | None = None,
+    published_after: str | None = None,
+    published_before: str | None = None,
 ) -> list[Video]:
-    return await crud_video.get_videos(db_session, limit=limit, offset=offset)
+    """
+    Get all videos with optional filtering.
+
+    Args:
+        db_session: Database session
+        limit: Maximum number of videos to return
+        offset: Number of videos to skip
+        is_favorited: Filter by favorited status
+        is_watched: Filter by watched status
+        is_short: Filter by short status
+        channel_id: Filter by channel ID
+        tag_id: Filter by tag ID
+        published_after: Filter videos published after this date (ISO format)
+        published_before: Filter videos published before this date (ISO format)
+
+    Returns:
+        List of Video instances matching the filters
+    """
+    # Build filter kwargs
+    filters = {}
+    if channel_id is not None:
+        filters["channel_id"] = channel_id
+    if is_favorited is not None:
+        filters["is_favorited"] = is_favorited
+    if is_watched is not None:
+        filters["is_watched"] = is_watched
+    if is_short is not None:
+        filters["is_short"] = is_short
+
+    # Get videos from CRUD layer
+    videos = await crud_video.get_videos(
+        db_session, limit=limit, offset=offset, **filters
+    )
+
+    # Post-filter for tag_id (since tags are a relationship, not a direct field)
+    if tag_id is not None:
+        videos = [v for v in videos if any(tag.id == tag_id for tag in v.tags)]
+
+    # Post-filter for date ranges
+    if published_after is not None or published_before is not None:
+        from datetime import datetime
+
+        if published_after:
+            after_dt = datetime.fromisoformat(published_after.replace('Z', '+00:00'))
+            videos = [v for v in videos if v.published_at >= after_dt]
+
+        if published_before:
+            before_dt = datetime.fromisoformat(published_before.replace('Z', '+00:00'))
+            videos = [v for v in videos if v.published_at <= before_dt]
+
+    return videos
 
 
 async def get_videos_for_channel(

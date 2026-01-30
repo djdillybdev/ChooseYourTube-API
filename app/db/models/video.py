@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Text, Boolean, DateTime, Integer, ForeignKey, ARRAY, JSON
+from sqlalchemy import String, Text, Boolean, DateTime, Integer, ForeignKey, ARRAY, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.mutable import MutableList
 from ..base import Base
@@ -15,6 +15,16 @@ if TYPE_CHECKING:
 
 class Video(Base):
     __tablename__ = "videos"
+    __table_args__ = (
+        # Index for filtering favorited videos
+        Index('ix_video_is_favorited', 'is_favorited'),
+        # Index for filtering watched videos
+        Index('ix_video_is_watched', 'is_watched'),
+        # Index for filtering shorts
+        Index('ix_video_is_short', 'is_short'),
+        # Compound index for common query pattern: filter by channel and sort by published date
+        Index('ix_video_channel_published', 'channel_id', 'published_at'),
+    )
 
     id: Mapped[str] = mapped_column(
         String(16), primary_key=True, comment="YouTube's Video ID (e.g., dQw4w9WgXcQ)"

@@ -49,25 +49,35 @@ async def get_folders(
 
 
 
-async def create(db: AsyncSession, folder: Folder) -> Folder:
-    db.add(folder)
-    await db.commit()
-    await db.refresh(folder)
-    return folder
+async def create_folder(db_session: AsyncSession, folder_to_create: Folder) -> Folder:
+    """
+    Creates a new folder in the database.
+
+    Args:
+        db_session: Database session
+        folder_to_create: Folder instance to create
+
+    Returns:
+        The created and refreshed Folder instance
+    """
+    db_session.add(folder_to_create)
+    await db_session.commit()
+    await db_session.refresh(folder_to_create)
+    return folder_to_create
 
 
-async def update(db: AsyncSession, folder: Folder) -> Folder:
+async def update_folder(db_session: AsyncSession, folder: Folder) -> Folder:
     """
     Updates a folder instance in the database.
 
     Args:
-        db: Database session
+        db_session: Database session
         folder: The folder instance with modified attributes
 
     Returns:
         The refreshed folder instance
     """
-    return await base_update(db, folder)
+    return await base_update(db_session, folder)
 
 
 async def delete_folder(db_session: AsyncSession, folder_to_delete: Folder) -> None:

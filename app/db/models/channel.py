@@ -53,7 +53,7 @@ class Channel(Base):
     folder: Mapped["Folder"] = relationship(back_populates="channels")
 
     videos: Mapped[list["Video"]] = relationship(
-        back_populates="channel", cascade="all, delete-orphan", lazy="selectin"
+        back_populates="channel", cascade="all, delete-orphan", lazy="select"
     )
 
     # Many-to-many relationship with Tags

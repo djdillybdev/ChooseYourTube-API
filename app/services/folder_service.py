@@ -45,7 +45,7 @@ async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
         parent = await crud_folder.get_folders(db, id=payload.parent_id, first=True)
         if not parent:
             raise HTTPException(status_code=404, detail="Parent folder not found")
-    return await crud_folder.create(
+    return await crud_folder.create_folder(
         db, Folder(name=payload.name, parent_id=payload.parent_id)
     )
 
@@ -73,7 +73,7 @@ async def update_folder(
     if payload.parent_id is not _UNSET:
         folder.parent_id = payload.parent_id
 
-    return await crud_folder.update(db, folder)
+    return await crud_folder.update_folder(db, folder)
 
 
 async def delete_folder_by_id(folder_id: int, db_session: AsyncSession) -> None:

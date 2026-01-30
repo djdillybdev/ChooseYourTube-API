@@ -11,9 +11,37 @@ async def list_videos(
     db_session: DBSessionDep,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
+    is_favorited: bool | None = Query(None, description="Filter by favorited status"),
+    is_watched: bool | None = Query(None, description="Filter by watched status"),
+    is_short: bool | None = Query(None, description="Filter by YouTube Shorts"),
+    channel_id: str | None = Query(None, description="Filter by channel ID"),
+    tag_id: int | None = Query(None, description="Filter by tag ID"),
+    published_after: str | None = Query(None, description="Filter videos published after this date (ISO 8601 format)"),
+    published_before: str | None = Query(None, description="Filter videos published before this date (ISO 8601 format)"),
 ):
+    """
+    List videos with optional filtering.
+
+    Filters:
+    - is_favorited: Show only favorited videos
+    - is_watched: Show only watched/unwatched videos
+    - is_short: Show only YouTube Shorts or exclude them
+    - channel_id: Show only videos from a specific channel
+    - tag_id: Show only videos with a specific tag
+    - published_after: Show videos published after a date (e.g., "2026-01-01T00:00:00Z")
+    - published_before: Show videos published before a date (e.g., "2026-12-31T23:59:59Z")
+    """
     return await video_service.get_all_videos(
-        db_session=db_session, limit=limit, offset=offset
+        db_session=db_session,
+        limit=limit,
+        offset=offset,
+        is_favorited=is_favorited,
+        is_watched=is_watched,
+        is_short=is_short,
+        channel_id=channel_id,
+        tag_id=tag_id,
+        published_after=published_after,
+        published_before=published_before,
     )
 
 
