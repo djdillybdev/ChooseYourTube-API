@@ -1,5 +1,5 @@
 from typing import Literal, Any
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import insert, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.video import Video
 from ...schemas.video import VideoCreate
@@ -37,11 +37,34 @@ async def create_videos_bulk(
     # Convert Pydantic models to dictionaries for the insert statement
     video_dicts = [video.model_dump() for video in videos_to_create]
 
-    # Create the bulk insert statement
-    stmt = insert(Video).values(video_dicts)
+    # Ensure `yt_tags` is a JSON-serializable list for DB storage.
+    # The `Video.yt_tags` column uses JSON storage, so passing plain
+    # Python lists works across SQLite and Postgres JSON types.
+    for vd in video_dicts:
+        if "yt_tags" in vd and vd["yt_tags"] is not None:
+            if not isinstance(vd["yt_tags"], (list, tuple)):
+                vd["yt_tags"] = [vd["yt_tags"]]
 
-    # Add the ON CONFLICT clause to ignore duplicates based on the primary key (id)
-    stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
+    # Create the bulk insert statement. Use the dialect-specific insert
+    # constructor so we can call `on_conflict_do_nothing()` on both
+    # Postgres and SQLite engines.
+    dialect_name = None
+    if getattr(db_session, "bind", None) is not None:
+        dialect = getattr(db_session.bind, "dialect", None)
+        if dialect is not None:
+            dialect_name = getattr(dialect, "name", None)
+
+    if dialect_name == "sqlite":
+        from sqlalchemy.dialects.sqlite import insert as dialect_insert
+
+        stmt = dialect_insert(Video).values(video_dicts)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
+    else:
+        # Default to Postgres-style insert which supports ON CONFLICT
+        from sqlalchemy.dialects.postgresql import insert as dialect_insert
+
+        stmt = dialect_insert(Video).values(video_dicts)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
 
     await db_session.execute(stmt)
     await db_session.commit()

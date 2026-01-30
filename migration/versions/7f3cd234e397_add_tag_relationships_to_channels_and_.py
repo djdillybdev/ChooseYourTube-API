@@ -21,6 +21,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    # 0. Create tags table (was missing in earlier migrations)
+    op.create_table(
+        "tags",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
     # 1. Add unique constraint and index to tags.name for case-insensitive uniqueness
     op.create_unique_constraint("uq_tags_name", "tags", ["name"])
     op.create_index("ix_tags_name", "tags", ["name"], unique=True)
@@ -74,3 +88,6 @@ def downgrade() -> None:
     # Remove unique constraint and index from tags
     op.drop_index("ix_tags_name", "tags")
     op.drop_constraint("uq_tags_name", "tags", type_="unique")
+
+    # Drop tags table
+    op.drop_table("tags")

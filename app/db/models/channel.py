@@ -1,14 +1,14 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import DateTime, ForeignKey, Text, String, Boolean
+from sqlalchemy.orm import Mapped, mapped_column, relationship, column_property
+from sqlalchemy import DateTime, ForeignKey, Text, String, Boolean, select, func
 from datetime import datetime, timezone
 from ..base import Base
 from .association_tables import channel_tags
+from .video import Video
 
 if TYPE_CHECKING:
-    from .video import Video
     from .folder import Folder
     from .tag import Tag
 
@@ -63,3 +63,11 @@ class Channel(Base):
 
     def __repr__(self) -> str:
         return f"<Channel(id={self.id}, title='{self.title}')>"
+
+
+Channel.total_videos = column_property(
+    select(func.count(Video.id))
+    .where(Video.channel_id == Channel.id)
+    .correlate_except(Video)
+    .scalar_subquery()
+)
