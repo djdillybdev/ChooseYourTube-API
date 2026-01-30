@@ -2,8 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..db.crud import crud_folder
 from ..db.models.folder import Folder
-from ..schemas.folder import FolderCreate, FolderUpdate, FolderOut
-
+from ..schemas.folder import FolderCreate, FolderUpdate, FolderOut, _UNSET
 
 def _build_tree(folders: list[Folder]) -> list[FolderOut]:
     nodes: dict[int, FolderOut] = {}
@@ -61,7 +60,7 @@ async def update_folder(
     if payload.parent_id == folder_id:
         raise HTTPException(status_code=400, detail="Folder cannot be its own parent")
 
-    if payload.parent_id is not None:
+    if payload.parent_id is not None and payload.parent_id is not _UNSET:
         parent = await crud_folder.get_folders(db, id=payload.parent_id, first=True)
         if not parent:
             raise HTTPException(status_code=404, detail="New parent not found")
@@ -71,7 +70,7 @@ async def update_folder(
 
     if payload.name is not None:
         folder.name = payload.name
-    if payload.parent_id is not None:
+    if payload.parent_id is not _UNSET:
         folder.parent_id = payload.parent_id
 
     return await crud_folder.update(db, folder)

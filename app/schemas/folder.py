@@ -4,6 +4,7 @@ from .base import BaseSchema
 
 # --- Input Schemas ---
 
+_UNSET = object()
 
 class FolderCreate(BaseModel):
     """Schema for creating a new folder."""
@@ -16,7 +17,7 @@ class FolderUpdate(BaseModel):
     """Schema for updating a folder's name or moving it."""
 
     name: str | None = None
-    parent_id: int | None = None
+    parent_id: int | None | object = _UNSET
 
 
 # --- Output Schema ---

@@ -122,8 +122,12 @@ def test_client(db_session, mock_youtube_api, mock_arq_redis):
     - YouTube API uses mock client
     - Redis client uses mock
     """
+    # Create async generator override for db_session
+    async def override_get_db_session():
+        yield db_session
+
     # Override app dependencies
-    app.dependency_overrides[get_db_session] = lambda: db_session
+    app.dependency_overrides[get_db_session] = override_get_db_session
     app.dependency_overrides[get_youtube_api] = lambda: mock_youtube_api
     app.dependency_overrides[get_arq_redis] = lambda: mock_arq_redis
 
@@ -155,3 +159,108 @@ def sample_videos_list_response():
     """Sample YouTube videos list response for testing."""
     from tests.fixtures.youtube_responses import mock_videos_list_response
     return mock_videos_list_response()
+
+
+# Worker Test Fixtures
+
+@pytest.fixture
+def mock_sessionmanager():
+    """
+    Mock sessionmanager for worker tests.
+
+    Mocks the sessionmanager.session() context manager to return an AsyncMock session.
+    """
+    from unittest.mock import patch, AsyncMock
+
+    with patch('app.worker.sessionmanager') as mock_sm:
+        mock_session = AsyncMock()
+        mock_sm.session.return_value.__aenter__.return_value = mock_session
+        yield mock_sm
+
+
+@pytest.fixture
+def mock_arq_pool():
+    """
+    Mock arq.create_pool for worker tests.
+
+    Returns a mock Redis pool with enqueue_job method.
+    """
+    from unittest.mock import patch, AsyncMock
+
+    with patch('arq.create_pool') as mock_create:
+        mock_pool = AsyncMock()
+        mock_pool.enqueue_job = AsyncMock()
+        mock_create.return_value = mock_pool
+        yield mock_pool
+
+
+# Video Service Test Fixtures
+
+@pytest.fixture
+def mock_feedparser():
+    """
+    Mock feedparser for RSS parsing tests.
+
+    Mocks feedparser.parse() to return controlled RSS feed data.
+    """
+    from unittest.mock import patch
+
+    with patch('feedparser.parse') as mock_parse:
+        yield mock_parse
+
+
+@pytest.fixture
+def sample_rss_feed():
+    """
+    Sample RSS feed data structure from YouTube.
+
+    Returns a mock feedparser result with video entries.
+    """
+    # feedparser returns an object with .entries attribute
+    feed = MagicMock()
+    feed.entries = [
+        MagicMock(
+            yt_videoid='rss_video_1',
+            link='https://youtube.com/watch?v=rss_video_1',
+            title='RSS Video 1'
+        ),
+        MagicMock(
+            yt_videoid='rss_video_2',
+            link='https://youtube.com/watch?v=rss_video_2',
+            title='RSS Video 2'
+        ),
+        MagicMock(
+            yt_videoid='rss_video_3',
+            link='https://youtube.com/shorts/rss_video_3',  # This is a short
+            title='RSS Short 3'
+        ),
+    ]
+    return feed
+
+
+@pytest.fixture
+def sample_paginated_playlist_response():
+    """
+    Sample YouTube playlist response with pagination (nextPageToken).
+
+    Returns a mock response with items and nextPageToken.
+    """
+    return {
+        'items': [
+            {
+                'snippet': {
+                    'title': 'Video 1',
+                    'resourceId': {'videoId': 'paginated_video_1'}
+                },
+                'contentDetails': {'videoId': 'paginated_video_1'}
+            },
+            {
+                'snippet': {
+                    'title': 'Video 2',
+                    'resourceId': {'videoId': 'paginated_video_2'}
+                },
+                'contentDetails': {'videoId': 'paginated_video_2'}
+            },
+        ],
+        'nextPageToken': 'next_page_token_123'
+    }

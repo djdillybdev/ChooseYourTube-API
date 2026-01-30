@@ -96,6 +96,9 @@ class TestCreateChannel:
         )
         await create_channel(db_session, channel1)
 
+        # Expunge to clear identity map and prevent SAWarning about identity conflict
+        db_session.expunge(channel1)
+
         # Try to create another channel with same ID
         channel2 = Channel(
             id="UC_duplicate",
