@@ -320,3 +320,31 @@ class TestGetTagsReturnTypes:
 
         assert isinstance(results, list)
         assert len(results) == 10
+
+
+# List-Based Filtering Tests
+
+
+@pytest.mark.asyncio
+class TestGetTagsListFiltering:
+    """Tests for list-based filtering (IN clauses)."""
+
+    async def test_filter_by_id_list(self, db_session, sample_tags):
+        """Should return multiple tags by ID list."""
+        # Get first 3 tag IDs
+        tag_ids = [sample_tags[0].id, sample_tags[2].id, sample_tags[5].id]
+
+        results = await get_tags(db_session, id=tag_ids)
+
+        assert len(results) == 3
+        result_ids = {t.id for t in results}
+        assert result_ids == set(tag_ids)
+
+        # Should get python, tutorial, database
+        names = {t.name for t in results}
+        assert names == {"python", "tutorial", "database"}
+
+    async def test_filter_empty_list_raises_error(self, db_session, sample_tags):
+        """Should reject empty filter lists."""
+        with pytest.raises(ValueError, match="cannot be empty"):
+            await get_tags(db_session, id=[])

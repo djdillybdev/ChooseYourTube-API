@@ -15,9 +15,9 @@ async def get_folders(
     db: AsyncSession,
     *,
     # model params
-    id: int | None = None,
+    id: int | list[int] | None = None,
     name: str | None = None,
-    parent_id: int | None | object = _UNSET,
+    parent_id: int | list[int] | None | object = _UNSET,
     # Pagination
     limit: int | None = 100,
     offset: int = 0,
@@ -27,6 +27,23 @@ async def get_folders(
     # Return type control
     first: bool = False,
 ) -> list[Folder] | Folder | None:
+    """
+    Retrieve folders with flexible filtering, pagination, and ordering.
+
+    Args:
+        id: Single folder ID or list of folder IDs for IN clause
+        name: Filter by exact folder name
+        parent_id: Single parent folder ID, list of parent IDs, or None for root folders
+        limit: Maximum number of results (None = unlimited, default 100)
+        offset: Number of results to skip (for pagination)
+        order_by: Field to order by
+        order_direction: Sort direction ('asc' or 'desc')
+        first: If True, return single Folder or None instead of list
+
+    Returns:
+        - If first=True: Single Folder instance or None
+        - If first=False: List of Folder instances (empty list if no matches)
+    """
     _validate_pagination(limit, offset)
 
     if order_direction not in ("asc", "desc"):

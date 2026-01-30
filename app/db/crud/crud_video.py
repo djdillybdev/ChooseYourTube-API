@@ -74,8 +74,8 @@ async def get_videos(
     db: AsyncSession,
     *,
     # Explicit parameters for common filters
-    id: str | None = None,
-    channel_id: str | None = None,
+    id: str | list[str] | None = None,
+    channel_id: str | list[str] | None = None,
     is_favorited: bool | None = None,
     is_short: bool | None = None,
     is_watched: bool | None = None,
@@ -90,6 +90,26 @@ async def get_videos(
     # Catch-all for any other Video field
     **kwargs: Any,
 ) -> list[Video] | Video | None:
+    """
+    Retrieve videos with flexible filtering, pagination, and ordering.
+
+    Args:
+        id: Single video ID or list of video IDs for IN clause
+        channel_id: Single channel ID or list of channel IDs for IN clause
+        is_favorited: Filter by favorited status
+        is_short: Filter by YouTube Shorts
+        is_watched: Filter by watched status
+        limit: Maximum number of results (None = unlimited)
+        offset: Number of results to skip (for pagination)
+        order_by: Field to order by
+        order_direction: Sort direction ('asc' or 'desc')
+        first: If True, return single Video or None instead of list
+        **kwargs: Additional filter fields
+
+    Returns:
+        - If first=True: Single Video instance or None
+        - If first=False: List of Video instances (empty list if no matches)
+    """
     _validate_pagination(limit, offset)
 
     if order_direction not in ("asc", "desc"):

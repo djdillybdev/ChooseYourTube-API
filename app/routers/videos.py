@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.schemas.base import PaginatedResponse
 from ..dependencies import DBSessionDep
@@ -16,7 +16,11 @@ async def list_videos(
     is_favorited: bool | None = Query(None, description="Filter by favorited status"),
     is_watched: bool | None = Query(None, description="Filter by watched status"),
     is_short: bool | None = Query(None, description="Filter by YouTube Shorts"),
-    channel_id: str | None = Query(None, description="Filter by channel ID"),
+    channel_id: str | None = Query(
+        None,
+        description="Filter by channel ID (single ID or comma-separated list)",
+        examples=["ch001", "ch001,ch002,ch003"],
+    ),
     tag_id: int | None = Query(None, description="Filter by tag ID"),
     published_after: str | None = Query(
         None, description="Filter videos published after this date (ISO 8601 format)"
@@ -32,11 +36,28 @@ async def list_videos(
     - is_favorited: Show only favorited videos
     - is_watched: Show only watched/unwatched videos
     - is_short: Show only YouTube Shorts or exclude them
-    - channel_id: Show only videos from a specific channel
+    - channel_id: Filter by single channel ID or multiple IDs (comma-separated)
+      Examples: "ch001" or "ch001,ch002,ch003"
     - tag_id: Show only videos with a specific tag
     - published_after: Show videos published after a date (e.g., "2026-01-01T00:00:00Z")
     - published_before: Show videos published before a date (e.g., "2026-12-31T23:59:59Z")
     """
+    # Parse channel_id: support both single ID and comma-separated list
+    parsed_channel_id = None
+    if channel_id is not None:
+        # Check if it contains commas (multiple IDs)
+        if "," in channel_id:
+            # Parse as list
+            parsed_channel_id = [cid.strip() for cid in channel_id.split(",") if cid.strip()]
+            if not parsed_channel_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="channel_id cannot be empty when using comma-separated values",
+                )
+        else:
+            # Single channel ID - keep as string
+            parsed_channel_id = channel_id.strip()
+
     return await video_service.get_all_videos(
         db_session=db_session,
         limit=limit,
@@ -44,7 +65,7 @@ async def list_videos(
         is_favorited=is_favorited,
         is_watched=is_watched,
         is_short=is_short,
-        channel_id=channel_id,
+        channel_id=parsed_channel_id,
         tag_id=tag_id,
         published_after=published_after,
         published_before=published_before,

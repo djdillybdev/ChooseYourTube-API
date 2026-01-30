@@ -364,3 +364,37 @@ class TestGetFoldersCombinedFilters:
         # Should be first 2 alphabetically
         names = [f.name for f in results]
         assert names == sorted(names)
+
+
+# List-Based Filtering Tests
+
+
+@pytest.mark.asyncio
+class TestGetFoldersListFiltering:
+    """Tests for list-based filtering (IN clauses)."""
+
+    async def test_filter_by_id_list(self, db_session, sample_folders):
+        """Should return multiple folders by ID list."""
+        results = await get_folders(db_session, id=[1, 4, 6])
+
+        # Folders: Programming, Frontend, React
+        assert len(results) == 3
+        result_ids = {f.id for f in results}
+        assert result_ids == {1, 4, 6}
+
+        names = {f.name for f in results}
+        assert names == {"Programming", "Frontend", "React"}
+
+    async def test_filter_by_parent_id_list(self, db_session, sample_folders):
+        """Should return folders from multiple parents."""
+        results = await get_folders(db_session, parent_id=[1, 4])
+
+        # parent_id=1: Frontend, Backend
+        # parent_id=4: React, Vue
+        assert len(results) == 4
+        assert all(f.parent_id in [1, 4] for f in results)
+
+    async def test_filter_empty_list_raises_error(self, db_session, sample_folders):
+        """Should reject empty filter lists."""
+        with pytest.raises(ValueError, match="cannot be empty"):
+            await get_folders(db_session, id=[])

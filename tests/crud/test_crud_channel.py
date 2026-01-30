@@ -499,3 +499,44 @@ class TestGetChannelsCombinedFilters:
         # Should be first 2 alphabetically
         titles = [c.title for c in results]
         assert titles == sorted(titles)
+
+
+# List-Based Filtering Tests
+
+
+@pytest.mark.asyncio
+class TestGetChannelsListFiltering:
+    """Tests for list-based filtering (IN clauses)."""
+
+    async def test_filter_by_id_list(self, db_session, sample_channels):
+        """Should return multiple channels by ID list."""
+        results = await get_channels(db_session, id=["ch001", "ch003", "ch005"])
+
+        assert len(results) == 3
+        result_ids = {c.id for c in results}
+        assert result_ids == {"ch001", "ch003", "ch005"}
+
+    async def test_filter_by_folder_id_list(self, db_session, sample_channels):
+        """Should return channels from multiple folders."""
+        results = await get_channels(db_session, folder_id=[1, 2])
+
+        # folder 1: ch001, ch002, ch009 (3 channels)
+        # folder 2: ch003, ch006 (2 channels)
+        assert len(results) == 5
+        assert all(c.folder_id in [1, 2] for c in results)
+
+    async def test_filter_empty_list_raises_error(self, db_session, sample_channels):
+        """Should reject empty filter lists."""
+        with pytest.raises(ValueError, match="cannot be empty"):
+            await get_channels(db_session, id=[])
+
+    async def test_mix_list_and_single_filters(self, db_session, sample_channels):
+        """Should combine list and equality filters."""
+        results = await get_channels(
+            db_session, folder_id=[1, 2], is_favorited=True
+        )
+
+        # folder 1: ch001 (fav), ch009 (fav)
+        # folder 2: ch003 (fav)
+        assert len(results) == 3
+        assert all(c.folder_id in [1, 2] and c.is_favorited for c in results)

@@ -15,12 +15,12 @@ _UNSET = object()
 async def get_channels(
     db: AsyncSession,
     *,
-    id: str | None = None,
+    id: str | list[str] | None = None,
     title: str | None = None,
     handle: str | None = None,
     description: str | None = None,
     is_favorited: bool | None = None,
-    folder_id: int | None | object = _UNSET,
+    folder_id: int | list[int] | None | object = _UNSET,
     # Pagination
     limit: int | None = None,
     offset: int = 0,
@@ -30,6 +30,26 @@ async def get_channels(
     # Return type control
     first: bool = False,
 ) -> list[Channel] | Channel | None:
+    """
+    Retrieve channels with flexible filtering, pagination, and ordering.
+
+    Args:
+        id: Single channel ID or list of channel IDs for IN clause
+        title: Filter by exact title match
+        handle: Filter by channel handle
+        description: Filter by description
+        is_favorited: Filter by favorited status
+        folder_id: Single folder ID, list of folder IDs, or None for no folder
+        limit: Maximum number of results (None = unlimited)
+        offset: Number of results to skip (for pagination)
+        order_by: Field to order by
+        order_direction: Sort direction ('asc' or 'desc')
+        first: If True, return single Channel or None instead of list
+
+    Returns:
+        - If first=True: Single Channel instance or None
+        - If first=False: List of Channel instances (empty list if no matches)
+    """
     _validate_pagination(limit, offset)
 
     if order_direction not in ("asc", "desc"):

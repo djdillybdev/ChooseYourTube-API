@@ -12,7 +12,7 @@ from .crud_base import (
 async def get_tags(
     db: AsyncSession,
     *,
-    id: int | None = None,
+    id: int | list[int] | None = None,
     name: str | None = None,
     # Pagination
     limit: int | None = None,
@@ -28,7 +28,7 @@ async def get_tags(
 
     Args:
         db: Database session
-        id: Filter by tag ID
+        id: Single tag ID or list of tag IDs for IN clause
         name: Filter by tag name (case-insensitive)
         limit: Maximum number of results
         offset: Number of results to skip

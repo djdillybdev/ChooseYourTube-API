@@ -408,3 +408,80 @@ class TestGetVideosReturnTypes:
         results = await get_videos(db_session, channel_id="ch001")
 
         assert isinstance(results, list)
+
+
+# List-Based Filtering Tests
+
+
+@pytest.mark.asyncio
+class TestGetVideosListFiltering:
+    """Tests for list-based filtering (IN clauses)."""
+
+    async def test_filter_by_channel_id_list(self, db_session, sample_videos):
+        """Should return videos from multiple channels using IN clause."""
+        results = await get_videos(db_session, channel_id=["ch001", "ch002"])
+
+        # ch001: vid001, vid002, vid007, vid010 (4 videos)
+        # ch002: vid003, vid004, vid008 (3 videos)
+        assert len(results) == 7
+        assert all(v.channel_id in ["ch001", "ch002"] for v in results)
+
+        # Verify we got videos from both channels
+        channel_ids = {v.channel_id for v in results}
+        assert channel_ids == {"ch001", "ch002"}
+
+    async def test_filter_by_single_item_list(self, db_session, sample_videos):
+        """Should handle single-item lists correctly."""
+        results = await get_videos(db_session, channel_id=["ch001"])
+
+        assert len(results) == 4  # Same as channel_id="ch001"
+        assert all(v.channel_id == "ch001" for v in results)
+
+    async def test_filter_by_empty_list_raises_error(self, db_session, sample_videos):
+        """Should raise ValueError for empty filter lists."""
+        with pytest.raises(ValueError, match="cannot be empty"):
+            await get_videos(db_session, channel_id=[])
+
+    async def test_filter_by_multiple_fields_with_lists(self, db_session, sample_videos):
+        """Should combine list filters with other filters."""
+        results = await get_videos(
+            db_session, channel_id=["ch001", "ch002"], is_favorited=True
+        )
+
+        # ch001 favorited: vid001, vid007
+        # ch002 favorited: vid003
+        assert len(results) == 3
+        assert all(
+            v.channel_id in ["ch001", "ch002"] and v.is_favorited for v in results
+        )
+
+    async def test_filter_by_id_list(self, db_session, sample_videos):
+        """Should retrieve multiple specific videos by ID."""
+        results = await get_videos(db_session, id=["vid001", "vid005", "vid009"])
+
+        assert len(results) == 3
+        result_ids = {v.id for v in results}
+        assert result_ids == {"vid001", "vid005", "vid009"}
+
+    async def test_list_filter_with_pagination(self, db_session, sample_videos):
+        """Should apply pagination after list filtering."""
+        results = await get_videos(
+            db_session, channel_id=["ch001", "ch002"], limit=3, offset=1
+        )
+
+        assert len(results) == 3
+        assert all(v.channel_id in ["ch001", "ch002"] for v in results)
+
+    async def test_list_filter_with_ordering(self, db_session, sample_videos):
+        """Should apply ordering to list-filtered results."""
+        results = await get_videos(
+            db_session,
+            channel_id=["ch001", "ch002"],
+            order_by="published_at",
+            order_direction="asc",
+        )
+
+        # Should get 7 videos ordered by publish date
+        assert len(results) == 7
+        dates = [v.published_at for v in results if v.published_at]
+        assert dates == sorted(dates)

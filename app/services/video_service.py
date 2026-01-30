@@ -292,7 +292,7 @@ async def get_all_videos(
     is_favorited: bool | None = None,
     is_watched: bool | None = None,
     is_short: bool | None = None,
-    channel_id: str | None = None,
+    channel_id: str | list[str] | None = None,
     tag_id: int | None = None,
     published_after: str | None = None,
     published_before: str | None = None,
@@ -307,7 +307,7 @@ async def get_all_videos(
         is_favorited: Filter by favorited status
         is_watched: Filter by watched status
         is_short: Filter by short status
-        channel_id: Filter by channel ID
+        channel_id: Filter by single channel ID or list of channel IDs
         tag_id: Filter by tag ID
         published_after: Filter videos published after this date (ISO format)
         published_before: Filter videos published before this date (ISO format)

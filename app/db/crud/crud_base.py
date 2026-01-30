@@ -69,7 +69,11 @@ async def base_get(
     Args:
         db: Database session
         model_class: SQLAlchemy model class to query
-        filters: Dictionary of field_name: value pairs to filter by
+        filters: Dictionary of field_name: value pairs to filter by.
+                Values can be:
+                - Single values for equality: {"channel_id": "ch001"}
+                - Lists/tuples for IN clause: {"channel_id": ["ch001", "ch002"]}
+                - None for IS NULL: {"folder_id": None}
         limit: Maximum number of results (None = unlimited)
         offset: Number of results to skip (for pagination)
         order_by: Field to order by (must be valid model column)
@@ -103,6 +107,26 @@ async def base_get(
             order_direction="desc",
             first=True
         )
+
+        # Filter by multiple channels (IN clause)
+        videos = await base_get(
+            db, Video,
+            filters={"channel_id": ["ch001", "ch002", "ch003"]},
+            limit=None,
+            offset=0,
+            order_by="published_at",
+            order_direction="desc"
+        )
+
+        # Mix single and list filters
+        videos = await base_get(
+            db, Video,
+            filters={"channel_id": ["ch001", "ch002"], "is_favorited": True},
+            limit=None,
+            offset=0,
+            order_by="published_at",
+            order_direction="desc"
+        )
     """
     # 1. Initialize query
     query = select(model_class)
@@ -110,7 +134,18 @@ async def base_get(
     # 2. Apply filters
     for field_name, value in filters.items():
         column = getattr(model_class, field_name)
-        query = query.where(column == value)
+
+        # Handle list-based filtering (IN clause)
+        if isinstance(value, (list, tuple)):
+            if len(value) == 0:
+                raise ValueError(
+                    f"Filter list for '{field_name}' cannot be empty. "
+                    f"Use None or omit the parameter for no filtering."
+                )
+            query = query.where(column.in_(value))
+        else:
+            # Single value equality
+            query = query.where(column == value)
 
     # 3. Apply ordering
     order_column = getattr(model_class, order_by)
