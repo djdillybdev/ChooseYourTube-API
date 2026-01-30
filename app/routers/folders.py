@@ -14,7 +14,9 @@ async def read_folder_tree(db_session: DBSessionDep):
 @router.post("/", response_model=FolderOut, status_code=status.HTTP_201_CREATED)
 async def create_folder(payload: FolderCreate, db_session: DBSessionDep):
     f = await folder_service.create_folder(payload, db_session)
-    return FolderOut.model_validate(f)
+    return FolderOut.model_validate(
+        {"id": f.id, "name": f.name, "parent_id": f.parent_id, "children": []}
+    )
 
 
 @router.patch("/{folder_id}", response_model=FolderOut)
@@ -22,7 +24,17 @@ async def rename_or_move_folder(
     folder_id: int, payload: FolderUpdate, db_session: DBSessionDep
 ):
     f = await folder_service.update_folder(folder_id, payload, db_session)
-    return FolderOut.model_validate(f)
+    return FolderOut.model_validate(
+        {"id": f.id, "name": f.name, "parent_id": f.parent_id, "children": []}
+    )
+
+
+@router.get("/{folder_id}", response_model=FolderOut)
+async def read_folder_by_id(folder_id: int, db_session: DBSessionDep):
+    f = await folder_service.get_folder_by_id(folder_id, db_session)
+    return FolderOut.model_validate(
+        {"id": f.id, "name": f.name, "parent_id": f.parent_id, "children": []}
+    )
 
 
 @router.delete("/{folder_id}", status_code=status.HTTP_204_NO_CONTENT)

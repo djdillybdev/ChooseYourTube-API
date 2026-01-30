@@ -57,36 +57,36 @@ class TestFoldersRouter:
     # See: tests/services/test_folder_service.py
 
     # async def test_create_folder_root(self, test_client, db_session):
-    #     """Test POST /folders/ creates root folder."""
-    #     response = test_client.post(
-    #         "/folders/",
-    #         json={"name": "New Root Folder", "parent_id": None}
-    #     )
-    #
-    #     assert response.status_code == 201
-    #     data = response.json()
-    #     assert data["name"] == "New Root Folder"
-    #     assert data["parent_id"] is None
-    #     assert "id" in data
+    async def test_create_folder_root(self, test_client, db_session):
+        """Test POST /folders/ creates root folder."""
+        response = test_client.post(
+            "/folders/", json={"name": "New Root Folder", "parent_id": None}
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["name"] == "New Root Folder"
+        assert data["parent_id"] is None
+        assert "id" in data
 
     # async def test_create_folder_with_parent(self, test_client, db_session):
-    #     """Test POST /folders/ creates folder with parent."""
-    #     from app.db.models.folder import Folder
-    #
-    #     # Create parent folder
-    #     parent = Folder(id=1, name="Parent", parent_id=None)
-    #     db_session.add(parent)
-    #     await db_session.commit()
-    #
-    #     response = test_client.post(
-    #         "/folders/",
-    #         json={"name": "Child Folder", "parent_id": 1}
-    #     )
-    #
-    #     assert response.status_code == 201
-    #     data = response.json()
-    #     assert data["name"] == "Child Folder"
-    #     assert data["parent_id"] == 1
+    async def test_create_folder_with_parent(self, test_client, db_session):
+        """Test POST /folders/ creates folder with parent."""
+        from app.db.models.folder import Folder
+
+        # Create parent folder
+        parent = Folder(id=1, name="Parent", parent_id=None)
+        db_session.add(parent)
+        await db_session.commit()
+
+        response = test_client.post(
+            "/folders/", json={"name": "Child Folder", "parent_id": 1}
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["name"] == "Child Folder"
+        assert data["parent_id"] == 1
 
     async def test_create_folder_nonexistent_parent_raises_404(
         self, test_client, db_session
@@ -172,3 +172,26 @@ class TestFoldersRouter:
 
         assert response.status_code == 400
         assert "descendant" in response.json()["detail"].lower()
+
+    async def test_read_folder_by_id_found(self, test_client, db_session):
+        """Test GET /folders/{id} returns the folder when it exists."""
+        from app.db.models.folder import Folder
+
+        folder = Folder(id=10, name="Lookup Folder", parent_id=None)
+        db_session.add(folder)
+        await db_session.commit()
+
+        response = test_client.get("/folders/10")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == 10
+        assert data["name"] == "Lookup Folder"
+        assert data["parent_id"] is None
+
+    async def test_read_folder_by_id_not_found(self, test_client, db_session):
+        """Test GET /folders/{id} returns 404 for non-existent folder."""
+        response = test_client.get("/folders/99999")
+
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"].lower()

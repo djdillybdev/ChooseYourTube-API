@@ -41,6 +41,13 @@ async def get_tree(db: AsyncSession) -> list[FolderOut]:
     return _build_tree(folders)
 
 
+async def get_folder_by_id(folder_id: int, db: AsyncSession) -> Folder:
+    folder = await crud_folder.get_folders(db, id=folder_id, first=True)
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    return folder
+
+
 async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
     if payload.parent_id:
         parent = await crud_folder.get_folders(db, id=payload.parent_id, first=True)
