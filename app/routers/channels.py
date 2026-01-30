@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Query, HTTPException
 from ..dependencies import DBSessionDep, YouTubeAPIDep, ArqDep
 from ..schemas.channel import ChannelCreate, ChannelOut, ChannelUpdate
 from ..services import channel_service
@@ -65,23 +65,33 @@ async def refresh_channel(
     )
 
 
-@router.delete("/{channel_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{channel_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_channel_by_id(channel_id: str, db_session: DBSessionDep):
     """
     Deletes a single channel by its YouTube Channel ID.
     All associated videos will also be deleted.
     """
     await channel_service.delete_channel_by_id(channel_id, db_session)
-    return {
-        "message": f"Channel with ID '{channel_id}' and all its videos have been deleted."
-    }
 
 
-@router.delete("/", status_code=status.HTTP_200_OK)
-async def delete_all_channels(db_session: DBSessionDep):
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_all_channels(
+    db_session: DBSessionDep,
+    confirm: str = Query(
+        ...,
+        description="Must be exactly 'DELETE_ALL_CHANNELS' to confirm this destructive operation"
+    )
+):
     """
     Deletes ALL channels from the database.
     This is a destructive operation intended for testing.
+
+    Requires confirmation parameter: ?confirm=DELETE_ALL_CHANNELS
     """
-    deleted_count = await channel_service.delete_all_channels(db_session)
-    return {"message": f"Successfully deleted {deleted_count} channels."}
+    if confirm != "DELETE_ALL_CHANNELS":
+        raise HTTPException(
+            status_code=400,
+            detail="Deletion not confirmed. Must provide ?confirm=DELETE_ALL_CHANNELS"
+        )
+
+    await channel_service.delete_all_channels(db_session)

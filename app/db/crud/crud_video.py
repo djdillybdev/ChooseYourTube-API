@@ -113,3 +113,15 @@ async def update_video(db: AsyncSession, video: Video) -> Video:
         The refreshed video instance
     """
     return await base_update(db, video)
+
+
+async def delete_video(db_session: AsyncSession, video_to_delete: Video) -> None:
+    """
+    Deletes a specific video instance from the database.
+
+    Args:
+        db_session: Database session
+        video_to_delete: The video instance to delete
+    """
+    await db_session.delete(video_to_delete)
+    await db_session.commit()

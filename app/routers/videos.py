@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 from ..dependencies import DBSessionDep
-from ..schemas.video import VideoOut
+from ..schemas.video import VideoOut, VideoUpdate
 from ..services import video_service
 
 router = APIRouter(prefix="/videos", tags=["Videos"])
@@ -32,3 +32,25 @@ async def list_videos_by_channel(
     return await video_service.get_videos_for_channel(
         channel_id=channel_id, db_session=db_session, limit=limit, offset=offset
     )
+
+
+@router.patch("/{video_id}", response_model=VideoOut)
+async def update_video(
+    video_id: str,
+    payload: VideoUpdate,
+    db_session: DBSessionDep
+):
+    """
+    Update video metadata (favorited, watched, short status, tags).
+    """
+    return await video_service.update_video(
+        video_id=video_id, payload=payload, db_session=db_session
+    )
+
+
+@router.delete("/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_video(video_id: str, db_session: DBSessionDep):
+    """
+    Delete a video by its ID.
+    """
+    await video_service.delete_video_by_id(video_id=video_id, db_session=db_session)

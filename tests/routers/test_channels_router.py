@@ -258,8 +258,8 @@ class TestChannelsRouter:
 
         response = test_client.delete("/channels/UC_delete_test")
 
-        assert response.status_code == 200
-        assert "deleted" in response.json()["message"].lower()
+        assert response.status_code == 204
+        # assert "deleted" in response.json()["message"].lower()
 
         # Verify channel is gone
         from sqlalchemy import select
@@ -289,10 +289,10 @@ class TestChannelsRouter:
         db_session.add(channel2)
         await db_session.commit()
 
-        response = test_client.delete("/channels/")
+        response = test_client.delete("/channels/?confirm=DELETE_ALL_CHANNELS")
 
-        assert response.status_code == 200
-        assert "2 channels" in response.json()["message"]
+        assert response.status_code == 204
+        # assert "2 channels" in response.json()["message"]
 
         # Verify all channels are gone
         from sqlalchemy import select

@@ -23,3 +23,13 @@ async def rename_or_move_folder(
 ):
     f = await folder_service.update_folder(folder_id, payload, db_session)
     return FolderOut.model_validate(f)
+
+
+@router.delete("/{folder_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_folder(folder_id: int, db_session: DBSessionDep):
+    """
+    Delete a folder by its ID.
+    Channels in this folder will be moved to root.
+    Child folders will be moved up one level.
+    """
+    await folder_service.delete_folder_by_id(folder_id, db_session)

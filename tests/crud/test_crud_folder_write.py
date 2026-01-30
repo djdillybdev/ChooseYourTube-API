@@ -7,7 +7,7 @@ Tests create() and delete() methods from crud_folder.
 import pytest
 import pytest_asyncio
 from sqlalchemy.exc import IntegrityError
-from app.db.crud.crud_folder import create, delete, get_folders
+from app.db.crud.crud_folder import create, delete_folder, get_folders
 from app.db.models.folder import Folder
 
 
@@ -118,7 +118,7 @@ class TestDeleteFolder:
         folder = Folder(name="To Delete")
         folder = await create(db_session, folder)
 
-        await delete(db_session, folder)
+        await delete_folder(db_session, folder)
 
         # Verify it's gone
         deleted = await get_folders(db_session, id=folder.id, first=True)
@@ -141,7 +141,7 @@ class TestDeleteFolder:
         await create(db_session, child2)
 
         # Delete parent
-        await delete(db_session, parent)
+        await delete_folder(db_session, parent)
 
         # Verify parent is gone
         deleted_parent = await get_folders(db_session, id=parent.id, first=True)
@@ -158,7 +158,7 @@ class TestDeleteFolder:
         child = await create(db_session, child)
 
         # Delete child
-        await delete(db_session, child)
+        await delete_folder(db_session, child)
 
         # Verify parent still exists
         existing_parent = await get_folders(db_session, id=parent.id, first=True)
@@ -176,7 +176,7 @@ class TestDeleteFolder:
 
         # Delete all
         for folder in created:
-            await delete(db_session, folder)
+            await delete_folder(db_session, folder)
 
         # Verify all gone
         remaining = await get_folders(db_session)
@@ -195,7 +195,7 @@ class TestDeleteFolder:
         leaf = await create(db_session, leaf)
 
         # Delete middle folder
-        await delete(db_session, middle)
+        await delete_folder(db_session, middle)
 
         # Verify middle is gone
         deleted_middle = await get_folders(db_session, id=middle.id, first=True)

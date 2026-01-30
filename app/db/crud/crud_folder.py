@@ -70,6 +70,13 @@ async def update(db: AsyncSession, folder: Folder) -> Folder:
     return await base_update(db, folder)
 
 
-async def delete(db: AsyncSession, folder: Folder) -> None:
-    await db.delete(folder)
-    await db.commit()
+async def delete_folder(db_session: AsyncSession, folder_to_delete: Folder) -> None:
+    """
+    Deletes a specific folder instance from the database.
+
+    Args:
+        db_session: Database session
+        folder_to_delete: The folder instance to delete
+    """
+    await db_session.delete(folder_to_delete)
+    await db_session.commit()

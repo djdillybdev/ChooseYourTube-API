@@ -74,3 +74,36 @@ async def update_folder(
         folder.parent_id = payload.parent_id
 
     return await crud_folder.update(db, folder)
+
+
+async def delete_folder_by_id(folder_id: int, db_session: AsyncSession) -> None:
+    """
+    Deletes a folder by its ID.
+
+    Before deletion:
+    - Channels in this folder are moved to root (folder_id set to None)
+    - Child folders are moved up one level (parent_id set to this folder's parent)
+
+    Args:
+        folder_id: Folder ID to delete
+        db_session: Database session
+
+    Raises:
+        HTTPException: If folder not found
+    """
+    # Get the folder to ensure it exists
+    folder = await crud_folder.get_folders(db_session, id=folder_id, first=True)
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    # Move channels to root
+    for channel in folder.channels:
+        channel.folder_id = None
+
+    # Move child folders up one level
+    children = await crud_folder.get_folders(db_session, parent_id=folder_id, limit=None)
+    for child in children:
+        child.parent_id = folder.parent_id
+
+    # Now safe to delete the folder
+    await crud_folder.delete_folder(db_session, folder)

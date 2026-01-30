@@ -121,37 +121,8 @@ async def update_channel(
 
     # Handle tag synchronization
     if payload.tag_ids is not None:
-        from ..db.models.tag import Tag
-
-        # Load all requested tags from database
-        requested_tag_ids = set(payload.tag_ids)
-        requested_tags = []
-
-        for tag_id in requested_tag_ids:
-            tag = await db_session.get(Tag, tag_id)
-            if tag is None:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Tag with id {tag_id} does not exist"
-                )
-            requested_tags.append(tag)
-
-        # Calculate current tags
-        current_tag_ids = {tag.id for tag in channel.tags}
-
-        # Find tags to add and remove
-        tags_to_add_ids = requested_tag_ids - current_tag_ids
-        tags_to_remove_ids = current_tag_ids - requested_tag_ids
-
-        # Remove tags that are no longer needed
-        for tag in list(channel.tags):
-            if tag.id in tags_to_remove_ids:
-                channel.tags.remove(tag)
-
-        # Add new tags
-        for tag in requested_tags:
-            if tag.id in tags_to_add_ids:
-                channel.tags.append(tag)
+        from .tag_service import sync_entity_tags
+        await sync_entity_tags(channel, payload.tag_ids, db_session)
 
     return await crud_channel.update_channel(db_session, channel)
 

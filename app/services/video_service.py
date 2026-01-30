@@ -317,36 +317,18 @@ async def update_video(
 
     # Handle tag synchronization
     if payload.tag_ids is not None:
-        from ..db.models.tag import Tag
-
-        # Load all requested tags from database
-        requested_tag_ids = set(payload.tag_ids)
-        requested_tags = []
-
-        for tag_id in requested_tag_ids:
-            tag = await db_session.get(Tag, tag_id)
-            if tag is None:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Tag with id {tag_id} does not exist"
-                )
-            requested_tags.append(tag)
-
-        # Calculate current tags
-        current_tag_ids = {tag.id for tag in video.tags}
-
-        # Find tags to add and remove
-        tags_to_add_ids = requested_tag_ids - current_tag_ids
-        tags_to_remove_ids = current_tag_ids - requested_tag_ids
-
-        # Remove tags that are no longer needed
-        for tag in list(video.tags):
-            if tag.id in tags_to_remove_ids:
-                video.tags.remove(tag)
-
-        # Add new tags
-        for tag in requested_tags:
-            if tag.id in tags_to_add_ids:
-                video.tags.append(tag)
+        from .tag_service import sync_entity_tags
+        await sync_entity_tags(video, payload.tag_ids, db_session)
 
     return await crud_video.update_video(db_session, video)
+
+
+async def delete_video_by_id(video_id: str, db_session: AsyncSession) -> None:
+    """
+    Deletes a video by its ID. Verifies it exists first.
+    """
+    # First, get the video to ensure it exists (this also handles the 404 case)
+    video_to_delete = await get_video_by_id(video_id, db_session)
+
+    # Now, pass the object to the CRUD layer for deletion
+    await crud_video.delete_video(db_session, video_to_delete)
