@@ -4,6 +4,8 @@ Comprehensive tests for flexible get_tags() CRUD method.
 Tests dynamic filtering, pagination, ordering, and case-insensitive name handling using TDD approach.
 """
 
+import uuid
+
 import pytest
 import pytest_asyncio
 from datetime import datetime, timezone, timedelta
@@ -23,16 +25,16 @@ async def sample_tags(db_session):
     now = datetime.now(timezone.utc)
 
     tags = [
-        Tag(name="python", created_at=now - timedelta(days=1)),
-        Tag(name="javascript", created_at=now - timedelta(days=2)),
-        Tag(name="tutorial", created_at=now - timedelta(days=3)),
-        Tag(name="advanced", created_at=now - timedelta(days=4)),
-        Tag(name="beginner", created_at=now - timedelta(days=5)),
-        Tag(name="database", created_at=now - timedelta(days=6)),
-        Tag(name="react", created_at=now - timedelta(days=7)),
-        Tag(name="algorithms", created_at=now - timedelta(days=8)),
-        Tag(name="webdev", created_at=now - timedelta(days=9)),
-        Tag(name="ai", created_at=now - timedelta(days=10)),
+        Tag(id=str(uuid.uuid4()), name="python", created_at=now - timedelta(days=1)),
+        Tag(id=str(uuid.uuid4()), name="javascript", created_at=now - timedelta(days=2)),
+        Tag(id=str(uuid.uuid4()), name="tutorial", created_at=now - timedelta(days=3)),
+        Tag(id=str(uuid.uuid4()), name="advanced", created_at=now - timedelta(days=4)),
+        Tag(id=str(uuid.uuid4()), name="beginner", created_at=now - timedelta(days=5)),
+        Tag(id=str(uuid.uuid4()), name="database", created_at=now - timedelta(days=6)),
+        Tag(id=str(uuid.uuid4()), name="react", created_at=now - timedelta(days=7)),
+        Tag(id=str(uuid.uuid4()), name="algorithms", created_at=now - timedelta(days=8)),
+        Tag(id=str(uuid.uuid4()), name="webdev", created_at=now - timedelta(days=9)),
+        Tag(id=str(uuid.uuid4()), name="ai", created_at=now - timedelta(days=10)),
     ]
 
     for tag in tags:
@@ -109,7 +111,7 @@ class TestGetTagsBasicFiltering:
 
     async def test_filter_by_nonexistent_id(self, db_session, sample_tags):
         """Should return None when filtering by non-existent ID with first=True."""
-        result = await get_tags(db_session, id=99999, first=True)
+        result = await get_tags(db_session, id="nonexistent-tag-id", first=True)
 
         assert result is None
 

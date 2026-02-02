@@ -5,7 +5,7 @@ These tables are defined separately from the models to avoid circular import iss
 """
 
 from datetime import datetime, timezone
-from sqlalchemy import Table, Column, String, Integer, DateTime, ForeignKey
+from sqlalchemy import Table, Column, String, DateTime, ForeignKey
 from ..base import Base
 
 # Many-to-many association table for Channel ↔ Tag
@@ -19,7 +19,10 @@ channel_tags = Table(
         primary_key=True,
     ),
     Column(
-        "tag_id", Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
+        "tag_id",
+        String(36),
+        ForeignKey("tags.id", ondelete="CASCADE"),
+        primary_key=True,
     ),
     Column(
         "created_at",
@@ -40,7 +43,10 @@ video_tags = Table(
         primary_key=True,
     ),
     Column(
-        "tag_id", Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
+        "tag_id",
+        String(36),
+        ForeignKey("tags.id", ondelete="CASCADE"),
+        primary_key=True,
     ),
     Column(
         "created_at",

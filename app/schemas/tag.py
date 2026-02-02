@@ -48,7 +48,7 @@ class TagUpdate(BaseModel):
 class TagOut(BaseSchema):
     """Schema for tag output."""
 
-    id: int
+    id: str
     name: str
     created_at: datetime
 

@@ -293,7 +293,7 @@ async def get_all_videos(
     is_watched: bool | None = None,
     is_short: bool | None = None,
     channel_id: str | list[str] | None = None,
-    tag_id: int | None = None,
+    tag_id: str | None = None,
     published_after: str | None = None,
     published_before: str | None = None,
 ) -> PaginatedResponse[VideoOut]:

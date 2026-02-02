@@ -20,7 +20,7 @@ async def get_channels(
     handle: str | None = None,
     description: str | None = None,
     is_favorited: bool | None = None,
-    folder_id: int | list[int] | None | object = _UNSET,
+    folder_id: str | list[str] | None | object = _UNSET,
     # Pagination
     limit: int | None = None,
     offset: int = 0,

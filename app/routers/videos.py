@@ -21,7 +21,7 @@ async def list_videos(
         description="Filter by channel ID (single ID or comma-separated list)",
         examples=["ch001", "ch001,ch002,ch003"],
     ),
-    tag_id: int | None = Query(None, description="Filter by tag ID"),
+    tag_id: str | None = Query(None, description="Filter by tag ID"),
     published_after: str | None = Query(
         None, description="Filter videos published after this date (ISO 8601 format)"
     ),

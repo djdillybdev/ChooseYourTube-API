@@ -32,8 +32,8 @@ async def get_channel_by_id(channel_id: str, db_session: AsyncSession) -> Channe
 async def get_all_channels(
     db_session: AsyncSession,
     is_favorited: bool | None = None,
-    folder_id: int | None = None,
-    tag_id: int | None = None,
+    folder_id: str | None = None,
+    tag_id: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> PaginatedResponse[ChannelOut]:

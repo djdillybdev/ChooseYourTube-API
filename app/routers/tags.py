@@ -25,7 +25,7 @@ async def list_tags(
 
 
 @router.get("/{tag_id}", response_model=TagOut)
-async def get_tag_by_id(tag_id: int, db_session: DBSessionDep):
+async def get_tag_by_id(tag_id: str, db_session: DBSessionDep):
     """
     Get a single tag by ID.
     """
@@ -42,7 +42,7 @@ async def create_tag(payload: TagCreate, db_session: DBSessionDep):
 
 
 @router.patch("/{tag_id}", response_model=TagOut)
-async def update_tag(tag_id: int, payload: TagUpdate, db_session: DBSessionDep):
+async def update_tag(tag_id: str, payload: TagUpdate, db_session: DBSessionDep):
     """
     Update a tag's name.
     """
@@ -52,7 +52,7 @@ async def update_tag(tag_id: int, payload: TagUpdate, db_session: DBSessionDep):
 
 
 @router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_tag(tag_id: int, db_session: DBSessionDep):
+async def delete_tag(tag_id: str, db_session: DBSessionDep):
     """
     Delete a tag by its ID.
     This will also remove the tag from all associated channels and videos.
@@ -62,7 +62,7 @@ async def delete_tag(tag_id: int, db_session: DBSessionDep):
 
 @router.get("/{tag_id}/videos", response_model=list[VideoOut])
 async def get_videos_for_tag(
-    tag_id: int,
+    tag_id: str,
     db_session: DBSessionDep,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
@@ -77,7 +77,7 @@ async def get_videos_for_tag(
 
 @router.get("/{tag_id}/channels", response_model=list[ChannelOut])
 async def get_channels_for_tag(
-    tag_id: int,
+    tag_id: str,
     db_session: DBSessionDep,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),

@@ -12,15 +12,15 @@ class ChannelCreate(BaseModel):
     """
 
     handle: str
-    folder_id: int | None = None
+    folder_id: str | None = None
 
 
 class ChannelUpdate(BaseModel):
     """Schema for updating app-specific channel metadata."""
 
     is_favorited: bool | None = None
-    folder_id: int | None = None  # Allows moving a channel
-    tag_ids: list[int] | None = None  # List of tag IDs to associate with the channel
+    folder_id: str | None = None  # Allows moving a channel
+    tag_ids: list[str] | None = None  # List of tag IDs to associate with the channel
 
 
 # --- Output Schema ---
@@ -35,7 +35,7 @@ class ChannelOut(BaseSchema):
     description: str | None
     thumbnail_url: HttpUrl | None
     is_favorited: bool
-    folder_id: int | None
+    folder_id: str | None
     created_at: datetime
     last_updated: datetime
 

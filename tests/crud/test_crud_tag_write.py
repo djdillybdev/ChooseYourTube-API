@@ -4,6 +4,8 @@ Comprehensive tests for tag write operations (create, delete).
 Tests create_tag(), get_or_create_tag(), delete_tag(), and delete_all_tags() methods.
 """
 
+import uuid
+
 import pytest
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
@@ -23,7 +25,7 @@ class TestCreateTag:
 
     async def test_create_tag_with_lowercase_name(self, db_session):
         """Create a tag with lowercase name."""
-        tag = Tag(name="python")
+        tag = Tag(id=str(uuid.uuid4()), name="python")
 
         result = await create_tag(db_session, tag)
 
@@ -33,7 +35,7 @@ class TestCreateTag:
 
     async def test_create_tag_normalizes_to_lowercase(self, db_session):
         """Tag names should be normalized to lowercase on creation."""
-        tag = Tag(name="JAVASCRIPT")
+        tag = Tag(id=str(uuid.uuid4()), name="JAVASCRIPT")
 
         result = await create_tag(db_session, tag)
 
@@ -43,7 +45,7 @@ class TestCreateTag:
 
     async def test_create_tag_with_mixed_case(self, db_session):
         """Tag with mixed case should be normalized to lowercase."""
-        tag = Tag(name="PyThOn")
+        tag = Tag(id=str(uuid.uuid4()), name="PyThOn")
 
         result = await create_tag(db_session, tag)
 
@@ -51,7 +53,7 @@ class TestCreateTag:
 
     async def test_create_tag_persists_to_database(self, db_session):
         """Verify tag is actually persisted and can be retrieved."""
-        tag = Tag(name="react")
+        tag = Tag(id=str(uuid.uuid4()), name="react")
 
         created_tag = await create_tag(db_session, tag)
 
@@ -64,11 +66,11 @@ class TestCreateTag:
         self, db_session
     ):
         """Creating a tag with duplicate name should raise IntegrityError (unique constraint)."""
-        tag1 = Tag(name="database")
+        tag1 = Tag(id=str(uuid.uuid4()), name="database")
         await create_tag(db_session, tag1)
 
         # Try to create another tag with same name
-        tag2 = Tag(name="database")
+        tag2 = Tag(id=str(uuid.uuid4()), name="database")
 
         with pytest.raises(IntegrityError):
             await create_tag(db_session, tag2)
@@ -77,18 +79,18 @@ class TestCreateTag:
         self, db_session
     ):
         """Creating a tag with same name but different case should raise IntegrityError."""
-        tag1 = Tag(name="typescript")
+        tag1 = Tag(id=str(uuid.uuid4()), name="typescript")
         await create_tag(db_session, tag1)
 
         # Try to create with different case (should still conflict)
-        tag2 = Tag(name="TypeScript")
+        tag2 = Tag(id=str(uuid.uuid4()), name="TypeScript")
 
         with pytest.raises(IntegrityError):
             await create_tag(db_session, tag2)
 
     async def test_create_tag_returns_refreshed_instance(self, db_session):
         """Verify returned tag has database-generated values."""
-        tag = Tag(name="algorithm")
+        tag = Tag(id=str(uuid.uuid4()), name="algorithm")
 
         result = await create_tag(db_session, tag)
 
@@ -102,7 +104,7 @@ class TestCreateTag:
         tag_names = ["python", "javascript", "go", "rust", "ruby"]
 
         for name in tag_names:
-            tag = Tag(name=name)
+            tag = Tag(id=str(uuid.uuid4()), name=name)
             await create_tag(db_session, tag)
 
         # Verify all were created
@@ -113,7 +115,7 @@ class TestCreateTag:
 
     async def test_create_tag_with_special_characters(self, db_session):
         """Create tag with hyphens and underscores (common in tag names)."""
-        tag = Tag(name="machine-learning")
+        tag = Tag(id=str(uuid.uuid4()), name="machine-learning")
 
         result = await create_tag(db_session, tag)
 
@@ -121,7 +123,7 @@ class TestCreateTag:
 
     async def test_create_tag_with_numbers(self, db_session):
         """Create tag with numbers in the name."""
-        tag = Tag(name="python3")
+        tag = Tag(id=str(uuid.uuid4()), name="python3")
 
         result = await create_tag(db_session, tag)
 
@@ -129,7 +131,7 @@ class TestCreateTag:
 
     async def test_create_tag_created_at_is_set(self, db_session):
         """Verify created_at timestamp is set."""
-        tag = Tag(name="timestamp-test")
+        tag = Tag(id=str(uuid.uuid4()), name="timestamp-test")
         result = await create_tag(db_session, tag)
 
         # Verify created_at is set and is a datetime
@@ -156,7 +158,7 @@ class TestGetOrCreateTag:
     async def test_get_or_create_returns_existing_tag(self, db_session):
         """Should return existing tag if it already exists."""
         # Create a tag first
-        original = Tag(name="javascript")
+        original = Tag(id=str(uuid.uuid4()), name="javascript")
         created = await create_tag(db_session, original)
 
         # Call get_or_create with same name
@@ -173,7 +175,7 @@ class TestGetOrCreateTag:
     async def test_get_or_create_case_insensitive(self, db_session):
         """Should return existing tag regardless of case used in search."""
         # Create tag with lowercase
-        original = Tag(name="react")
+        original = Tag(id=str(uuid.uuid4()), name="react")
         created = await create_tag(db_session, original)
 
         # Call get_or_create with uppercase
@@ -233,7 +235,7 @@ class TestDeleteTag:
     async def test_delete_existing_tag(self, db_session):
         """Delete a tag that exists in the database."""
         # Create a tag first
-        tag = Tag(name="to-be-deleted")
+        tag = Tag(id=str(uuid.uuid4()), name="to-be-deleted")
         created_tag = await create_tag(db_session, tag)
 
         # Verify it exists
@@ -251,7 +253,7 @@ class TestDeleteTag:
         """Verify deletion actually removes the tag."""
         # Create multiple tags
         for name in ["tag1", "tag2", "tag3"]:
-            tag = Tag(name=name)
+            tag = Tag(id=str(uuid.uuid4()), name=name)
             await create_tag(db_session, tag)
 
         # Verify we have 3 tags
@@ -272,7 +274,7 @@ class TestDeleteTag:
 
     async def test_delete_tag_by_name(self, db_session):
         """Delete a tag by retrieving it by name first."""
-        tag = Tag(name="delete-by-name")
+        tag = Tag(id=str(uuid.uuid4()), name="delete-by-name")
         await create_tag(db_session, tag)
 
         # Retrieve by name
@@ -290,7 +292,7 @@ class TestDeleteTag:
         """Delete multiple tags one by one."""
         # Create 5 tags
         for i in range(5):
-            tag = Tag(name=f"delete-seq-{i}")
+            tag = Tag(id=str(uuid.uuid4()), name=f"delete-seq-{i}")
             await create_tag(db_session, tag)
 
         # Delete them one by one
@@ -318,7 +320,7 @@ class TestDeleteAllTags:
         """Delete all tags returns correct count."""
         # Create 5 tags
         for i in range(5):
-            tag = Tag(name=f"bulk-delete-{i}")
+            tag = Tag(id=str(uuid.uuid4()), name=f"bulk-delete-{i}")
             await create_tag(db_session, tag)
 
         # Verify we have 5 tags
@@ -337,7 +339,7 @@ class TestDeleteAllTags:
         """Calling delete_all twice should work (second call returns 0)."""
         # Create some tags
         for i in range(3):
-            tag = Tag(name=f"double-delete-{i}")
+            tag = Tag(id=str(uuid.uuid4()), name=f"double-delete-{i}")
             await create_tag(db_session, tag)
 
         # First delete
@@ -352,7 +354,7 @@ class TestDeleteAllTags:
         """Delete all tags works with larger datasets."""
         # Create 50 tags
         for i in range(50):
-            tag = Tag(name=f"large-{str(i).zfill(3)}")
+            tag = Tag(id=str(uuid.uuid4()), name=f"large-{str(i).zfill(3)}")
             await create_tag(db_session, tag)
 
         count = await delete_all_tags(db_session)
@@ -373,7 +375,7 @@ class TestDeleteAllTags:
         ]
 
         for name in tag_names:
-            tag = Tag(name=name)
+            tag = Tag(id=str(uuid.uuid4()), name=name)
             await create_tag(db_session, tag)
 
         count = await delete_all_tags(db_session)

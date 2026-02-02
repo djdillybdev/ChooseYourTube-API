@@ -124,7 +124,7 @@ class TestChannelsRouter:
         # Create a folder first
         from app.db.models.folder import Folder
 
-        folder = Folder(id=1, name="Test Folder", parent_id=None)
+        folder = Folder(id="f1", name="Test Folder", parent_id=None)
         db_session.add(folder)
         await db_session.commit()
 
@@ -145,12 +145,12 @@ class TestChannelsRouter:
             mock_to_thread.return_value = youtube_response
 
             response = test_client.post(
-                "/channels/", json={"handle": "@channelwithfolder", "folder_id": 1}
+                "/channels/", json={"handle": "@channelwithfolder", "folder_id": "f1"}
             )
 
         assert response.status_code == 201
         data = response.json()
-        assert data["folder_id"] == 1
+        assert data["folder_id"] == "f1"
 
     async def test_update_channel_favorite_status(self, test_client, db_session):
         """Test PATCH /channels/{id} updates channel favorite status."""
@@ -180,7 +180,7 @@ class TestChannelsRouter:
         from app.db.models.folder import Folder
 
         # Create folder and channel
-        folder = Folder(id=1, name="Test Folder", parent_id=None)
+        folder = Folder(id="f1", name="Test Folder", parent_id=None)
         channel = Channel(
             id="UC_move_test",
             handle="movetest",
@@ -192,11 +192,11 @@ class TestChannelsRouter:
         db_session.add(channel)
         await db_session.commit()
 
-        response = test_client.patch("/channels/UC_move_test", json={"folder_id": 1})
+        response = test_client.patch("/channels/UC_move_test", json={"folder_id": "f1"})
 
         assert response.status_code == 200
         data = response.json()
-        assert data["folder_id"] == 1
+        assert data["folder_id"] == "f1"
 
     async def test_refresh_channel_endpoint(
         self, test_client, db_session, mock_youtube_api, mock_feedparser

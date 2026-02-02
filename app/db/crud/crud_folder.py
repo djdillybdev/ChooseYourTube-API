@@ -15,9 +15,9 @@ async def get_folders(
     db: AsyncSession,
     *,
     # model params
-    id: int | list[int] | None = None,
+    id: str | list[str] | None = None,
     name: str | None = None,
-    parent_id: int | list[int] | None | object = _UNSET,
+    parent_id: str | list[str] | None | object = _UNSET,
     # Pagination
     limit: int | None = 100,
     offset: int = 0,

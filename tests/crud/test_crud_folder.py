@@ -27,20 +27,20 @@ async def sample_folders(db_session):
     folders = [
         # Root folders
         Folder(
-            id=1, name="Programming", parent_id=None, created_at=now - timedelta(days=1)
+            id="f1", name="Programming", parent_id=None, created_at=now - timedelta(days=1)
         ),
         Folder(
-            id=2, name="Databases", parent_id=None, created_at=now - timedelta(days=2)
+            id="f2", name="Databases", parent_id=None, created_at=now - timedelta(days=2)
         ),
-        Folder(id=3, name="Design", parent_id=None, created_at=now - timedelta(days=3)),
-        # Children of Programming (id=1)
-        Folder(id=4, name="Frontend", parent_id=1, created_at=now - timedelta(days=4)),
-        Folder(id=5, name="Backend", parent_id=1, created_at=now - timedelta(days=5)),
-        # Children of Frontend (id=4)
-        Folder(id=6, name="React", parent_id=4, created_at=now - timedelta(days=6)),
-        Folder(id=7, name="Vue", parent_id=4, created_at=now - timedelta(days=7)),
-        # Child of Databases (id=2)
-        Folder(id=8, name="SQL", parent_id=2, created_at=now - timedelta(days=8)),
+        Folder(id="f3", name="Design", parent_id=None, created_at=now - timedelta(days=3)),
+        # Children of Programming (id=f1)
+        Folder(id="f4", name="Frontend", parent_id="f1", created_at=now - timedelta(days=4)),
+        Folder(id="f5", name="Backend", parent_id="f1", created_at=now - timedelta(days=5)),
+        # Children of Frontend (id=f4)
+        Folder(id="f6", name="React", parent_id="f4", created_at=now - timedelta(days=6)),
+        Folder(id="f7", name="Vue", parent_id="f4", created_at=now - timedelta(days=7)),
+        # Child of Databases (id=f2)
+        Folder(id="f8", name="SQL", parent_id="f2", created_at=now - timedelta(days=8)),
     ]
 
     for folder in folders:
@@ -59,22 +59,22 @@ class TestGetFoldersBasicFiltering:
 
     async def test_filter_by_id_returns_single_folder(self, db_session, sample_folders):
         """Should return exactly one folder when filtering by ID with first=True."""
-        result = await get_folders(db_session, id=1, first=True)
+        result = await get_folders(db_session, id="f1", first=True)
 
         assert result is not None
         assert isinstance(result, Folder)
-        assert result.id == 1
+        assert result.id == "f1"
         assert result.name == "Programming"
 
     async def test_filter_by_id_returns_list_when_first_false(
         self, db_session, sample_folders
     ):
         """Should return a list with one folder when first=False."""
-        results = await get_folders(db_session, id=1, first=False)
+        results = await get_folders(db_session, id="f1", first=False)
 
         assert isinstance(results, list)
         assert len(results) == 1
-        assert results[0].id == 1
+        assert results[0].id == "f1"
 
     async def test_filter_by_name(self, db_session, sample_folders):
         """Should return folder with exact name match."""
@@ -82,14 +82,14 @@ class TestGetFoldersBasicFiltering:
 
         assert result is not None
         assert result.name == "React"
-        assert result.id == 6
+        assert result.id == "f6"
 
     async def test_filter_by_parent_id(self, db_session, sample_folders):
         """Should return all children of a specific parent folder."""
-        results = await get_folders(db_session, parent_id=1)
+        results = await get_folders(db_session, parent_id="f1")
 
         assert len(results) == 2  # Frontend, Backend
-        assert all(f.parent_id == 1 for f in results)
+        assert all(f.parent_id == "f1" for f in results)
         names = {f.name for f in results}
         assert names == {"Frontend", "Backend"}
 
@@ -112,17 +112,17 @@ class TestGetFoldersHierarchical:
 
     async def test_get_direct_children(self, db_session, sample_folders):
         """Should return only direct children of a folder, not grandchildren."""
-        # Frontend (id=4) is child of Programming (id=1)
+        # Frontend (id=f4) is child of Programming (id=f1)
         # React and Vue are children of Frontend
-        results = await get_folders(db_session, parent_id=4)
+        results = await get_folders(db_session, parent_id="f4")
 
         assert len(results) == 2  # React, Vue (not Backend)
-        assert all(f.parent_id == 4 for f in results)
+        assert all(f.parent_id == "f4" for f in results)
 
     async def test_folder_with_no_children(self, db_session, sample_folders):
         """Should return empty list for folders with no children."""
-        # React (id=6) has no children
-        results = await get_folders(db_session, parent_id=6)
+        # React (id=f6) has no children
+        results = await get_folders(db_session, parent_id="f6")
 
         assert results == []
 
@@ -133,11 +133,11 @@ class TestGetFoldersHierarchical:
         assert len(roots) == 3
 
         # Second level
-        level2 = await get_folders(db_session, parent_id=1)
+        level2 = await get_folders(db_session, parent_id="f1")
         assert len(level2) == 2
 
         # Third level
-        level3 = await get_folders(db_session, parent_id=4)
+        level3 = await get_folders(db_session, parent_id="f4")
         assert len(level3) == 2
 
 
@@ -278,7 +278,7 @@ class TestGetFoldersEdgeCases:
         self, db_session, sample_folders
     ):
         """Should return None when first=True and no matches found."""
-        result = await get_folders(db_session, id=999, first=True)
+        result = await get_folders(db_session, id="nonexistent", first=True)
 
         assert result is None
 
@@ -302,7 +302,7 @@ class TestGetFoldersReturnTypes:
 
     async def test_first_true_returns_single_object(self, db_session, sample_folders):
         """first=True should return Folder | None, not a list."""
-        result = await get_folders(db_session, id=1, first=True)
+        result = await get_folders(db_session, id="f1", first=True)
 
         assert isinstance(result, Folder)
         assert not isinstance(result, list)
@@ -316,7 +316,7 @@ class TestGetFoldersReturnTypes:
 
     async def test_default_returns_list(self, db_session, sample_folders):
         """Default behavior (no first param) should return list."""
-        results = await get_folders(db_session, parent_id=1)
+        results = await get_folders(db_session, parent_id="f1")
 
         assert isinstance(results, list)
 
@@ -330,18 +330,18 @@ class TestGetFoldersCombinedFilters:
 
     async def test_filter_by_name_and_parent_id(self, db_session, sample_folders):
         """Should combine name and parent_id filters."""
-        result = await get_folders(db_session, name="Frontend", parent_id=1, first=True)
+        result = await get_folders(db_session, name="Frontend", parent_id="f1", first=True)
 
         assert result is not None
         assert result.name == "Frontend"
-        assert result.parent_id == 1
+        assert result.parent_id == "f1"
 
     async def test_combined_filters_with_no_match(self, db_session, sample_folders):
         """Should return empty list when no folders match all filters."""
         results = await get_folders(
             db_session,
             name="React",
-            parent_id=1,  # React's parent is 4, not 1
+            parent_id="f1",  # React's parent is f4, not f1
         )
 
         assert results == []
@@ -375,24 +375,24 @@ class TestGetFoldersListFiltering:
 
     async def test_filter_by_id_list(self, db_session, sample_folders):
         """Should return multiple folders by ID list."""
-        results = await get_folders(db_session, id=[1, 4, 6])
+        results = await get_folders(db_session, id=["f1", "f4", "f6"])
 
         # Folders: Programming, Frontend, React
         assert len(results) == 3
         result_ids = {f.id for f in results}
-        assert result_ids == {1, 4, 6}
+        assert result_ids == {"f1", "f4", "f6"}
 
         names = {f.name for f in results}
         assert names == {"Programming", "Frontend", "React"}
 
     async def test_filter_by_parent_id_list(self, db_session, sample_folders):
         """Should return folders from multiple parents."""
-        results = await get_folders(db_session, parent_id=[1, 4])
+        results = await get_folders(db_session, parent_id=["f1", "f4"])
 
-        # parent_id=1: Frontend, Backend
-        # parent_id=4: React, Vue
+        # parent_id=f1: Frontend, Backend
+        # parent_id=f4: React, Vue
         assert len(results) == 4
-        assert all(f.parent_id in [1, 4] for f in results)
+        assert all(f.parent_id in ["f1", "f4"] for f in results)
 
     async def test_filter_empty_list_raises_error(self, db_session, sample_folders):
         """Should reject empty filter lists."""

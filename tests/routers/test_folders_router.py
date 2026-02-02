@@ -27,9 +27,9 @@ class TestFoldersRouter:
         # root1/
         #   child1/
         # root2/
-        root1 = Folder(id=1, name="Root 1", parent_id=None)
-        child1 = Folder(id=2, name="Child 1", parent_id=1)
-        root2 = Folder(id=3, name="Root 2", parent_id=None)
+        root1 = Folder(id="1", name="Root 1", parent_id=None)
+        child1 = Folder(id="2", name="Child 1", parent_id="1")
+        root2 = Folder(id="3", name="Root 2", parent_id=None)
 
         db_session.add(root1)
         db_session.add(child1)
@@ -75,80 +75,39 @@ class TestFoldersRouter:
         from app.db.models.folder import Folder
 
         # Create parent folder
-        parent = Folder(id=1, name="Parent", parent_id=None)
+        parent = Folder(id="1", name="Parent", parent_id=None)
         db_session.add(parent)
         await db_session.commit()
 
         response = test_client.post(
-            "/folders/", json={"name": "Child Folder", "parent_id": 1}
+            "/folders/", json={"name": "Child Folder", "parent_id": "1"}
         )
 
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == "Child Folder"
-        assert data["parent_id"] == 1
+        assert data["parent_id"] == "1"
 
     async def test_create_folder_nonexistent_parent_raises_404(
         self, test_client, db_session
     ):
         """Test POST /folders/ with non-existent parent returns 404."""
         response = test_client.post(
-            "/folders/", json={"name": "Invalid Child", "parent_id": 99999}
+            "/folders/", json={"name": "Invalid Child", "parent_id": "99999"}
         )
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
-    # async def test_update_folder_rename(self, test_client, db_session):
-    #     """Test PATCH /folders/{id} renames folder."""
-    #     from app.db.models.folder import Folder
-    #
-    #     folder = Folder(id=1, name="Old Name", parent_id=None)
-    #     db_session.add(folder)
-    #     await db_session.commit()
-    #
-    #     response = test_client.patch(
-    #         "/folders/1",
-    #         json={"name": "New Name"}
-    #     )
-    #
-    #     assert response.status_code == 200
-    #     data = response.json()
-    #     assert data["name"] == "New Name"
-
-    # async def test_update_folder_move_to_different_parent(self, test_client, db_session):
-    #     """Test PATCH /folders/{id} moves folder to different parent."""
-    #     from app.db.models.folder import Folder
-    #
-    #     # Create folders: root1, root2, and child (under root1)
-    #     root1 = Folder(id=1, name="Root 1", parent_id=None)
-    #     root2 = Folder(id=2, name="Root 2", parent_id=None)
-    #     child = Folder(id=3, name="Child", parent_id=1)
-    #
-    #     db_session.add(root1)
-    #     db_session.add(root2)
-    #     db_session.add(child)
-    #     await db_session.commit()
-    #
-    #     # Move child from root1 to root2
-    #     response = test_client.patch(
-    #         "/folders/3",
-    #         json={"parent_id": 2}
-    #     )
-    #
-    #     assert response.status_code == 200
-    #     data = response.json()
-    #     assert data["parent_id"] == 2
-
     async def test_update_folder_self_parent_raises_400(self, test_client, db_session):
         """Test PATCH /folders/{id} with self as parent returns 400."""
         from app.db.models.folder import Folder
 
-        folder = Folder(id=1, name="Test Folder", parent_id=None)
+        folder = Folder(id="1", name="Test Folder", parent_id=None)
         db_session.add(folder)
         await db_session.commit()
 
-        response = test_client.patch("/folders/1", json={"parent_id": 1})
+        response = test_client.patch("/folders/1", json={"parent_id": "1"})
 
         assert response.status_code == 400
         assert "own parent" in response.json()["detail"].lower()
@@ -158,9 +117,9 @@ class TestFoldersRouter:
         from app.db.models.folder import Folder
 
         # Create hierarchy: root -> child -> grandchild
-        root = Folder(id=1, name="Root", parent_id=None)
-        child = Folder(id=2, name="Child", parent_id=1)
-        grandchild = Folder(id=3, name="Grandchild", parent_id=2)
+        root = Folder(id="1", name="Root", parent_id=None)
+        child = Folder(id="2", name="Child", parent_id="1")
+        grandchild = Folder(id="3", name="Grandchild", parent_id="2")
 
         db_session.add(root)
         db_session.add(child)
@@ -168,7 +127,7 @@ class TestFoldersRouter:
         await db_session.commit()
 
         # Try to move root under grandchild (would create cycle)
-        response = test_client.patch("/folders/1", json={"parent_id": 3})
+        response = test_client.patch("/folders/1", json={"parent_id": "3"})
 
         assert response.status_code == 400
         assert "descendant" in response.json()["detail"].lower()
@@ -177,7 +136,7 @@ class TestFoldersRouter:
         """Test GET /folders/{id} returns the folder when it exists."""
         from app.db.models.folder import Folder
 
-        folder = Folder(id=10, name="Lookup Folder", parent_id=None)
+        folder = Folder(id="10", name="Lookup Folder", parent_id=None)
         db_session.add(folder)
         await db_session.commit()
 
@@ -185,7 +144,7 @@ class TestFoldersRouter:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] == 10
+        assert data["id"] == "10"
         assert data["name"] == "Lookup Folder"
         assert data["parent_id"] is None
 

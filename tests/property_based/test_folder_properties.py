@@ -24,7 +24,7 @@ class TestBuildTreeProperties:
         """
         # Create flat list of folders (all roots for simplicity)
         folders = [
-            Folder(id=i, name=f"Folder {i}", parent_id=None)
+            Folder(id=str(i), name=f"Folder {i}", parent_id=None)
             for i in range(1, folder_count + 1)
         ]
 
@@ -64,15 +64,15 @@ class TestBuildTreeProperties:
         # Create root folders
         for root_idx in range(root_count):
             folders.append(
-                Folder(id=folder_id, name=f"Root {root_idx}", parent_id=None)
+                Folder(id=str(folder_id), name=f"Root {root_idx}", parent_id=None)
             )
-            root_id = folder_id
+            root_id = str(folder_id)
             folder_id += 1
 
             # Create children for this root
             for child_idx in range(children_per_root):
                 folders.append(
-                    Folder(id=folder_id, name=f"Child {child_idx}", parent_id=root_id)
+                    Folder(id=str(folder_id), name=f"Child {child_idx}", parent_id=root_id)
                 )
                 folder_id += 1
 
@@ -107,10 +107,10 @@ class TestBuildTreeProperties:
         (or None for roots). This verifies proper tree structure.
         """
         # Create a simple hierarchy: one root with all others as direct children
-        folders = [Folder(id=1, name="Root", parent_id=None)]
+        folders = [Folder(id="1", name="Root", parent_id=None)]
         folders.extend(
             [
-                Folder(id=i, name=f"Child {i}", parent_id=1)
+                Folder(id=str(i), name=f"Child {i}", parent_id="1")
                 for i in range(2, folder_count + 1)
             ]
         )
@@ -132,10 +132,10 @@ class TestBuildTreeProperties:
         folder structures without errors or stack overflow.
         """
         # Create a chain: root -> child1 -> child2 -> ... -> childN
-        folders = [Folder(id=1, name="Root", parent_id=None)]
+        folders = [Folder(id="1", name="Root", parent_id=None)]
 
         for i in range(2, depth + 2):
-            folders.append(Folder(id=i, name=f"Level {i - 1}", parent_id=i - 1))
+            folders.append(Folder(id=str(i), name=f"Level {i - 1}", parent_id=str(i - 1)))
 
         tree = _build_tree(folders)
 
@@ -175,14 +175,14 @@ class TestAssertNotCycleProperties:
         folders_dict = {}
 
         for i in range(1, chain_length + 1):
-            next_id = i + 1 if i < chain_length else 1  # Last points back to first
-            folders_dict[i] = Folder(id=i, name=f"Folder {i}", parent_id=next_id)
+            next_id = str(i + 1) if i < chain_length else "1"  # Last points back to first
+            folders_dict[str(i)] = Folder(id=str(i), name=f"Folder {i}", parent_id=next_id)
 
         # Try to move folder 1 to any position in the chain (should all fail)
         for new_parent_id in range(2, chain_length + 1):
             with pytest.raises(HTTPException) as exc_info:
                 _assert_not_cycle(
-                    folders_dict, moving_id=1, new_parent_id=new_parent_id
+                    folders_dict, moving_id="1", new_parent_id=str(new_parent_id)
                 )
 
             assert exc_info.value.status_code == 400
@@ -200,16 +200,16 @@ class TestAssertNotCycleProperties:
         """
         # Create simple structure: folder_id -> parent, and separate non_ancestor_id
         folders_dict = {
-            folder_id: Folder(id=folder_id, name=f"Folder {folder_id}", parent_id=None),
-            non_ancestor_id: Folder(
-                id=non_ancestor_id, name=f"Folder {non_ancestor_id}", parent_id=None
+            str(folder_id): Folder(id=str(folder_id), name=f"Folder {folder_id}", parent_id=None),
+            str(non_ancestor_id): Folder(
+                id=str(non_ancestor_id), name=f"Folder {non_ancestor_id}", parent_id=None
             ),
         }
 
         # This should NOT raise (no cycle possible)
         try:
             _assert_not_cycle(
-                folders_dict, moving_id=folder_id, new_parent_id=non_ancestor_id
+                folders_dict, moving_id=str(folder_id), new_parent_id=str(non_ancestor_id)
             )
         except Exception as e:
             pytest.fail(f"Unexpected exception: {e}")
@@ -222,14 +222,14 @@ class TestAssertNotCycleProperties:
         never create a cycle.
         """
         folders_dict = {
-            1: Folder(id=1, name="Folder 1", parent_id=None),
-            2: Folder(id=2, name="Folder 2", parent_id=1),
-            3: Folder(id=3, name="Folder 3", parent_id=2),
+            "1": Folder(id="1", name="Folder 1", parent_id=None),
+            "2": Folder(id="2", name="Folder 2", parent_id="1"),
+            "3": Folder(id="3", name="Folder 3", parent_id="2"),
         }
 
         # Moving to root (None) should always be allowed
         try:
-            _assert_not_cycle(folders_dict, moving_id=3, new_parent_id=None)
+            _assert_not_cycle(folders_dict, moving_id="3", new_parent_id=None)
         except Exception as e:
             pytest.fail(f"Moving to root should not raise exception: {e}")
 
@@ -245,16 +245,16 @@ class TestAssertNotCycleProperties:
 
         # Create chain: 1 -> 2 -> 3 -> ... -> N
         folders_dict = {}
-        folders_dict[1] = Folder(id=1, name="Folder 1", parent_id=None)
+        folders_dict["1"] = Folder(id="1", name="Folder 1", parent_id=None)
 
         for i in range(2, hierarchy_depth + 1):
-            folders_dict[i] = Folder(id=i, name=f"Folder {i}", parent_id=i - 1)
+            folders_dict[str(i)] = Folder(id=str(i), name=f"Folder {i}", parent_id=str(i - 1))
 
         # Try to move folder 1 to any of its descendants (all should fail)
         for descendant_id in range(2, hierarchy_depth + 1):
             with pytest.raises(HTTPException) as exc_info:
                 _assert_not_cycle(
-                    folders_dict, moving_id=1, new_parent_id=descendant_id
+                    folders_dict, moving_id="1", new_parent_id=str(descendant_id)
                 )
 
             assert exc_info.value.status_code == 400
@@ -275,22 +275,22 @@ class TestAssertNotCycleProperties:
 
         # Create multiple separate trees
         for root_idx in range(root_count):
-            folders_dict[folder_id] = Folder(
-                id=folder_id, name=f"Root {root_idx}", parent_id=None
+            folders_dict[str(folder_id)] = Folder(
+                id=str(folder_id), name=f"Root {root_idx}", parent_id=None
             )
             folder_id += 1
 
             # Create a chain under this root
             for depth in range(depth_per_root):
-                parent_id = folder_id - 1
-                folders_dict[folder_id] = Folder(
-                    id=folder_id, name=f"Node {folder_id}", parent_id=parent_id
+                parent_id = str(folder_id - 1)
+                folders_dict[str(folder_id)] = Folder(
+                    id=str(folder_id), name=f"Node {folder_id}", parent_id=parent_id
                 )
                 folder_id += 1
 
         # Pick a leaf from first tree and a leaf from last tree
-        first_tree_leaf = depth_per_root  # Last node of first tree
-        last_tree_root = (root_count - 1) * (depth_per_root + 1) + 1
+        first_tree_leaf = str(depth_per_root)  # Last node of first tree
+        last_tree_root = str((root_count - 1) * (depth_per_root + 1) + 1)
 
         # Moving between different trees should be allowed
         try:
@@ -318,9 +318,9 @@ class TestFolderHierarchyProperties:
         assume(parent_id != child_id)
 
         folders_dict = {
-            parent_id: Folder(id=parent_id, name=f"Parent {parent_id}", parent_id=None),
-            child_id: Folder(
-                id=child_id, name=f"Child {child_id}", parent_id=parent_id
+            str(parent_id): Folder(id=str(parent_id), name=f"Parent {parent_id}", parent_id=None),
+            str(child_id): Folder(
+                id=str(child_id), name=f"Child {child_id}", parent_id=str(parent_id)
             ),
         }
 
@@ -329,12 +329,12 @@ class TestFolderHierarchyProperties:
         tree = _build_tree(folders)
 
         # Find parent in tree
-        parent_node = next(node for node in tree if node.id == parent_id)
+        parent_node = next(node for node in tree if node.id == str(parent_id))
 
         # Verify child is in parent's children
         child_ids = [child.id for child in parent_node.children]
-        assert child_id in child_ids
+        assert str(child_id) in child_ids
 
         # Verify parent is NOT in child's children (if we traverse there)
         child_node = parent_node.children[0]
-        assert parent_id not in [c.id for c in child_node.children]
+        assert str(parent_id) not in [c.id for c in child_node.children]

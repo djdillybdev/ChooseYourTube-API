@@ -1,3 +1,4 @@
+import uuid
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..db.crud import crud_folder
@@ -6,15 +7,15 @@ from ..schemas.folder import FolderCreate, FolderUpdate, FolderOut, _UNSET
 
 
 def _build_tree(folders: list[Folder]) -> list[FolderOut]:
-    nodes: dict[int, FolderOut] = {}
-    children_map: dict[int | None, list[int]] = {}
+    nodes: dict[str, FolderOut] = {}
+    children_map: dict[str | None, list[str]] = {}
     for f in folders:
         nodes[f.id] = FolderOut(
             id=f.id, name=f.name, parent_id=f.parent_id, children=[]
         )
         children_map.setdefault(f.parent_id, []).append(f.id)
 
-    def attach(node_id: int) -> FolderOut:
+    def attach(node_id: str) -> FolderOut:
         node = nodes[node_id]
         for cid in children_map.get(node_id, []):
             node.children.append(attach(cid))
@@ -25,7 +26,7 @@ def _build_tree(folders: list[Folder]) -> list[FolderOut]:
 
 
 def _assert_not_cycle(
-    folders_by_id: dict[int, Folder], moving_id: int, new_parent_id: int | None
+    folders_by_id: dict[str, Folder], moving_id: str, new_parent_id: str | None
 ):
     cur = new_parent_id
     while cur is not None:
@@ -41,7 +42,7 @@ async def get_tree(db: AsyncSession) -> list[FolderOut]:
     return _build_tree(folders)
 
 
-async def get_folder_by_id(folder_id: int, db: AsyncSession) -> Folder:
+async def get_folder_by_id(folder_id: str, db: AsyncSession) -> Folder:
     folder = await crud_folder.get_folders(db, id=folder_id, first=True)
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
@@ -53,13 +54,16 @@ async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
         parent = await crud_folder.get_folders(db, id=payload.parent_id, first=True)
         if not parent:
             raise HTTPException(status_code=404, detail="Parent folder not found")
+
+    # Generate UUID for new folder
+    folder_id = str(uuid.uuid4())
     return await crud_folder.create_folder(
-        db, Folder(name=payload.name, parent_id=payload.parent_id)
+        db, Folder(id=folder_id, name=payload.name, parent_id=payload.parent_id)
     )
 
 
 async def update_folder(
-    folder_id: int, payload: FolderUpdate, db: AsyncSession
+    folder_id: str, payload: FolderUpdate, db: AsyncSession
 ) -> Folder:
     folder = await crud_folder.get_folders(db, id=folder_id, first=True)
     if not folder:
@@ -84,7 +88,7 @@ async def update_folder(
     return await crud_folder.update_folder(db, folder)
 
 
-async def delete_folder_by_id(folder_id: int, db_session: AsyncSession) -> None:
+async def delete_folder_by_id(folder_id: str, db_session: AsyncSession) -> None:
     """
     Deletes a folder by its ID.
 

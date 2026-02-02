@@ -11,10 +11,10 @@ router = APIRouter(prefix="/channels", tags=["Channels"])
 async def list_channels(
     db_session: DBSessionDep,
     is_favorited: bool | None = Query(None, description="Filter by favorited status"),
-    folder_id: int | None = Query(
+    folder_id: str | None = Query(
         None, description="Filter by folder ID (use 0 for root/no folder)"
     ),
-    tag_id: int | None = Query(None, description="Filter by tag ID"),
+    tag_id: str | None = Query(None, description="Filter by tag ID"),
     limit: int = Query(50, ge=1, le=200, description="Number of items per page"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
 ):

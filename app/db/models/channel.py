@@ -46,7 +46,9 @@ class Channel(Base):
     )
 
     # Foreign Key to Folder
-    folder_id: Mapped[int | None] = mapped_column(ForeignKey("folders.id"))
+    folder_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("folders.id")
+    )
 
     # Relationship to Folder (One-to-Many)
     # A Channel belongs to one Folder.

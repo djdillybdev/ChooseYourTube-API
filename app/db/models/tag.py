@@ -15,7 +15,9 @@ if TYPE_CHECKING:
 class Tag(Base):
     __tablename__ = "tags"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, index=True, comment="UUID as string"
+    )
     name: Mapped[str] = mapped_column(
         String(255), nullable=False, unique=True, index=True
     )

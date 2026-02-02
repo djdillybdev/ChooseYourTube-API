@@ -4,6 +4,7 @@ Tag management service.
 Provides utilities for tag synchronization and management across entities.
 """
 
+import uuid
 from typing import Protocol
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +24,7 @@ class TaggableEntity(Protocol):
 
 
 async def sync_entity_tags(
-    entity: TaggableEntity, tag_ids: list[int], db_session: AsyncSession
+    entity: TaggableEntity, tag_ids: list[str], db_session: AsyncSession
 ) -> None:
     """
     Synchronize tags for any entity (Channel or Video).
@@ -100,7 +101,7 @@ async def get_all_tags(
     )
 
 
-async def get_tag_by_id(tag_id: int, db_session: AsyncSession) -> Tag:
+async def get_tag_by_id(tag_id: str, db_session: AsyncSession) -> Tag:
     """
     Get a tag by its ID.
 
@@ -141,8 +142,9 @@ async def create_new_tag(payload: TagCreate, db_session: AsyncSession) -> Tag:
             status_code=409, detail=f"Tag with name '{payload.name}' already exists"
         )
 
-    # Create new tag
-    new_tag = Tag(name=payload.name)
+    # Generate UUID for new tag
+    tag_id = str(uuid.uuid4())
+    new_tag = Tag(id=tag_id, name=payload.name)
     try:
         return await crud_tag.create_tag(db_session, new_tag)
     except IntegrityError:
@@ -152,7 +154,7 @@ async def create_new_tag(payload: TagCreate, db_session: AsyncSession) -> Tag:
         )
 
 
-async def update_tag(tag_id: int, payload: TagUpdate, db_session: AsyncSession) -> Tag:
+async def update_tag(tag_id: str, payload: TagUpdate, db_session: AsyncSession) -> Tag:
     """
     Update a tag's name.
 
@@ -189,7 +191,7 @@ async def update_tag(tag_id: int, payload: TagUpdate, db_session: AsyncSession) 
     return tag
 
 
-async def delete_tag_by_id(tag_id: int, db_session: AsyncSession) -> None:
+async def delete_tag_by_id(tag_id: str, db_session: AsyncSession) -> None:
     """
     Delete a tag by its ID.
 
@@ -208,7 +210,7 @@ async def delete_tag_by_id(tag_id: int, db_session: AsyncSession) -> None:
 
 
 async def get_videos_for_tag(
-    tag_id: int, db_session: AsyncSession, limit: int = 50, offset: int = 0
+    tag_id: str, db_session: AsyncSession, limit: int = 50, offset: int = 0
 ):
     """
     Get all videos associated with a tag.
@@ -235,7 +237,7 @@ async def get_videos_for_tag(
 
 
 async def get_channels_for_tag(
-    tag_id: int, db_session: AsyncSession, limit: int = 50, offset: int = 0
+    tag_id: str, db_session: AsyncSession, limit: int = 50, offset: int = 0
 ):
     """
     Get all channels associated with a tag.

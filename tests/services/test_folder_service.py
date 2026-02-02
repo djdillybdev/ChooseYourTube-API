@@ -24,11 +24,11 @@ async def sample_folders(db_session):
     #   child2/
     # root2/
     folders = [
-        Folder(id=1, name="root1", parent_id=None),
-        Folder(id=2, name="child1", parent_id=1),
-        Folder(id=3, name="child2", parent_id=1),
-        Folder(id=4, name="grandchild1", parent_id=2),
-        Folder(id=5, name="root2", parent_id=None),
+        Folder(id="f1", name="root1", parent_id=None),
+        Folder(id="f2", name="child1", parent_id="f1"),
+        Folder(id="f3", name="child2", parent_id="f1"),
+        Folder(id="f4", name="grandchild1", parent_id="f2"),
+        Folder(id="f5", name="root2", parent_id=None),
     ]
 
     for folder in folders:
@@ -94,17 +94,17 @@ class TestCreateFolder:
     async def test_create_folder_with_valid_parent(self, db_session, sample_folders):
         """Test creating a folder with a valid parent."""
         # Create child under root1 (id=1)
-        payload = FolderCreate(name="New Child", parent_id=1)
+        payload = FolderCreate(name="New Child", parent_id="f1")
 
         folder = await create_folder(payload, db_session)
 
         assert folder.name == "New Child"
-        assert folder.parent_id == 1
+        assert folder.parent_id == "f1"
         assert folder.id is not None
 
     async def test_create_folder_with_nonexistent_parent_raises_404(self, db_session):
         """Test that creating folder with non-existent parent raises 404."""
-        payload = FolderCreate(name="Invalid Child", parent_id=99999)
+        payload = FolderCreate(name="Invalid Child", parent_id="nonexistent")
 
         with pytest.raises(HTTPException) as exc_info:
             await create_folder(payload, db_session)
@@ -115,12 +115,12 @@ class TestCreateFolder:
     async def test_create_folder_deeply_nested(self, db_session, sample_folders):
         """Test creating a deeply nested folder."""
         # Create under grandchild1 (id=4), which is already 2 levels deep
-        payload = FolderCreate(name="Great Grandchild", parent_id=4)
+        payload = FolderCreate(name="Great Grandchild", parent_id="f4")
 
         folder = await create_folder(payload, db_session)
 
         assert folder.name == "Great Grandchild"
-        assert folder.parent_id == 4
+        assert folder.parent_id == "f4"
 
 
 @pytest.mark.asyncio
@@ -131,41 +131,41 @@ class TestUpdateFolder:
         """Test updating only the folder name."""
         payload = FolderUpdate(name="Renamed Root")
 
-        folder = await update_folder(1, payload, db_session)
+        folder = await update_folder("f1", payload, db_session)
 
-        assert folder.id == 1
+        assert folder.id == "f1"
         assert folder.name == "Renamed Root"
         assert folder.parent_id is None  # Should remain unchanged
 
     async def test_update_folder_parent_only(self, db_session, sample_folders):
         """Test updating only the folder parent."""
         # Move child2 (id=3) from root1 to root2 (id=5)
-        payload = FolderUpdate(parent_id=5)
+        payload = FolderUpdate(parent_id="f5")
 
-        folder = await update_folder(3, payload, db_session)
+        folder = await update_folder("f3", payload, db_session)
 
-        assert folder.id == 3
+        assert folder.id == "f3"
         assert folder.name == "child2"  # Name unchanged
-        assert folder.parent_id == 5  # Parent changed
+        assert folder.parent_id == "f5"  # Parent changed
 
     async def test_update_folder_both_name_and_parent(self, db_session, sample_folders):
         """Test updating both name and parent."""
-        payload = FolderUpdate(name="Moved and Renamed", parent_id=5)
+        payload = FolderUpdate(name="Moved and Renamed", parent_id="f5")
 
-        folder = await update_folder(3, payload, db_session)
+        folder = await update_folder("f3", payload, db_session)
 
-        assert folder.id == 3
+        assert folder.id == "f3"
         assert folder.name == "Moved and Renamed"
-        assert folder.parent_id == 5
+        assert folder.parent_id == "f5"
 
     async def test_update_folder_self_parent_raises_400(
         self, db_session, sample_folders
     ):
         """Test that setting folder as its own parent raises 400."""
-        payload = FolderUpdate(parent_id=1)
+        payload = FolderUpdate(parent_id="f1")
 
         with pytest.raises(HTTPException) as exc_info:
-            await update_folder(1, payload, db_session)
+            await update_folder("f1", payload, db_session)
 
         assert exc_info.value.status_code == 400
         assert "cannot be its own parent" in exc_info.value.detail.lower()
@@ -174,10 +174,10 @@ class TestUpdateFolder:
         self, db_session, sample_folders
     ):
         """Test that setting non-existent parent raises 404."""
-        payload = FolderUpdate(parent_id=99999)
+        payload = FolderUpdate(parent_id="nonexistent")
 
         with pytest.raises(HTTPException) as exc_info:
-            await update_folder(1, payload, db_session)
+            await update_folder("f1", payload, db_session)
 
         assert exc_info.value.status_code == 404
         assert "New parent not found" in exc_info.value.detail
@@ -189,10 +189,10 @@ class TestUpdateFolder:
         # Try to move root1 (id=1) under its grandchild (id=4)
         # Hierarchy: root1 -> child1 -> grandchild1
         # This would create: grandchild1 -> root1 -> child1 -> grandchild1 (cycle)
-        payload = FolderUpdate(parent_id=4)
+        payload = FolderUpdate(parent_id="f4")
 
         with pytest.raises(HTTPException) as exc_info:
-            await update_folder(1, payload, db_session)
+            await update_folder("f1", payload, db_session)
 
         assert exc_info.value.status_code == 400
         assert "descendant" in exc_info.value.detail.lower()
@@ -202,10 +202,10 @@ class TestUpdateFolder:
     ):
         """Test that moving folder under its direct child raises 400."""
         # Try to move root1 (id=1) under child1 (id=2)
-        payload = FolderUpdate(parent_id=2)
+        payload = FolderUpdate(parent_id="f2")
 
         with pytest.raises(HTTPException) as exc_info:
-            await update_folder(1, payload, db_session)
+            await update_folder("f1", payload, db_session)
 
         assert exc_info.value.status_code == 400
         assert "descendant" in exc_info.value.detail.lower()
@@ -215,7 +215,7 @@ class TestUpdateFolder:
         payload = FolderUpdate(name="New Name")
 
         with pytest.raises(HTTPException) as exc_info:
-            await update_folder(99999, payload, db_session)
+            await update_folder("nonexistent", payload, db_session)
 
         assert exc_info.value.status_code == 404
         assert "Folder not found" in exc_info.value.detail
@@ -223,23 +223,23 @@ class TestUpdateFolder:
     async def test_update_folder_to_sibling(self, db_session, sample_folders):
         """Test moving folder to be under a sibling (valid move)."""
         # Move child2 (id=3) under child1 (id=2) - both are children of root1
-        payload = FolderUpdate(parent_id=2)
+        payload = FolderUpdate(parent_id="f2")
 
-        folder = await update_folder(3, payload, db_session)
+        folder = await update_folder("f3", payload, db_session)
 
-        assert folder.id == 3
-        assert folder.parent_id == 2  # Now child of child1
+        assert folder.id == "f3"
+        assert folder.parent_id == "f2"  # Now child of child1
 
     async def test_update_folder_with_none_parent_changed(
         self, db_session, sample_folders
     ):
         """Test that parent_id=None in payload changes parent to None."""
-        # child1 (id=2) has parent_id=1
+        # child1 (id=f2) has parent_id=f1
         # Passing parent_id=None should change it to None (i.e., make it a root)
         payload = FolderUpdate(parent_id=None, name="Renamed Child")
 
-        folder = await update_folder(2, payload, db_session)
+        folder = await update_folder("f2", payload, db_session)
 
-        assert folder.id == 2
+        assert folder.id == "f2"
         assert folder.name == "Renamed Child"  # Name was updated
         assert folder.parent_id is None  # Parent changed to None (i.e., root folder)

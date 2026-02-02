@@ -36,7 +36,7 @@ class VideoUpdate(BaseModel):
     is_favorited: bool | None = None
     is_watched: bool | None = None
     is_short: bool | None = None
-    tag_ids: list[int] | None = None  # List of tag IDs to associate with the video
+    tag_ids: list[str] | None = None  # List of tag IDs to associate with the video
 
 
 # --- Output Schema ---

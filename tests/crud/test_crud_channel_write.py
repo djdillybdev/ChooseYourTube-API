@@ -4,6 +4,8 @@ Comprehensive tests for channel write operations (create, delete).
 Tests create_channel(), delete_channel(), and delete_all_channels() methods.
 """
 
+import uuid
+
 import pytest
 import pytest_asyncio
 from datetime import datetime
@@ -21,7 +23,7 @@ from app.db.models.folder import Folder
 @pytest_asyncio.fixture
 async def sample_folder(db_session):
     """Creates a test folder for testing folder_id foreign key relationships."""
-    folder = Folder(name="Test Folder")
+    folder = Folder(id=str(uuid.uuid4()), name="Test Folder")
     db_session.add(folder)
     await db_session.commit()
     await db_session.refresh(folder)
@@ -125,17 +127,18 @@ class TestCreateChannel:
         so this won't raise an error in tests. In PostgreSQL, this would
         raise an IntegrityError.
         """
+        nonexistent_folder_id = str(uuid.uuid4())  # Non-existent folder ID
         channel = Channel(
             id="UC_test_channel_004",
             title="Invalid Folder Test",
             handle="@invalidfolder",
             uploads_playlist_id="UU_test_playlist_004",
-            folder_id=99999,  # Non-existent folder ID
+            folder_id=nonexistent_folder_id,
         )
 
         # In SQLite this succeeds, in PostgreSQL it would raise IntegrityError
         result = await create_channel(db_session, channel)
-        assert result.folder_id == 99999
+        assert result.folder_id == nonexistent_folder_id
 
     async def test_create_channel_returns_refreshed_instance(self, db_session):
         """Verify returned channel has database-generated values."""

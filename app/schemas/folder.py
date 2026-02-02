@@ -11,14 +11,14 @@ class FolderCreate(BaseModel):
     """Schema for creating a new folder."""
 
     name: str
-    parent_id: int | None = None
+    parent_id: str | None = None
 
 
 class FolderUpdate(BaseModel):
     """Schema for updating a folder's name or moving it."""
 
     name: str | None = None
-    parent_id: int | None | object = _UNSET
+    parent_id: str | None | object = _UNSET
 
 
 # --- Output Schema ---
@@ -30,7 +30,7 @@ class FolderOut(BaseSchema):
     This is a recursive schema.
     """
 
-    id: int
+    id: str
     name: str
-    parent_id: int | None
+    parent_id: str | None
     children: list["FolderOut"] = Field(default_factory=list)

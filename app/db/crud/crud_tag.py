@@ -12,7 +12,7 @@ from .crud_base import (
 async def get_tags(
     db: AsyncSession,
     *,
-    id: int | list[int] | None = None,
+    id: str | list[str] | None = None,
     name: str | None = None,
     # Pagination
     limit: int | None = None,
@@ -103,7 +103,8 @@ async def get_or_create_tag(db_session: AsyncSession, name: str) -> Tag:
         return existing_tag
 
     # Create new tag if it doesn't exist
-    new_tag = Tag(name=name)
+    import uuid
+    new_tag = Tag(id=str(uuid.uuid4()), name=name)
     return await create_tag(db_session, new_tag)
 
 

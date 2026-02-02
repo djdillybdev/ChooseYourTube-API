@@ -32,10 +32,11 @@ async def sample_channel(db_session):
 @pytest_asyncio.fixture
 async def sample_tags(db_session):
     """Create sample tags for testing."""
+    import uuid
     tag_names = ["python", "javascript", "tutorial", "advanced", "beginner"]
     tags = []
     for name in tag_names:
-        tag = Tag(name=name)
+        tag = Tag(id=str(uuid.uuid4()), name=name)
         created_tag = await create_tag(db_session, tag)
         tags.append(created_tag)
     return tags
@@ -155,7 +156,7 @@ class TestUpdateVideoWithTags:
         self, db_session, sample_video
     ):
         """Providing a non-existent tag ID should raise HTTPException."""
-        payload = VideoUpdate(tag_ids=[99999])
+        payload = VideoUpdate(tag_ids=["nonexistent-tag"])
 
         with pytest.raises(HTTPException) as exc_info:
             await update_video(sample_video.id, payload, db_session)
@@ -168,7 +169,7 @@ class TestUpdateVideoWithTags:
     ):
         """Providing a mix of valid and invalid tag IDs should raise error."""
         # Mix valid and invalid IDs
-        tag_ids = [sample_tags[0].id, 99999, sample_tags[1].id]
+        tag_ids = [sample_tags[0].id, "nonexistent-uuid", sample_tags[1].id]
 
         payload = VideoUpdate(tag_ids=tag_ids)
 

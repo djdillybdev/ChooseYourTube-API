@@ -204,18 +204,18 @@ class TestCreateChannel:
         # First create a folder
         from app.db.models.folder import Folder
 
-        folder = Folder(id=1, name="Test Folder", parent_id=None)
+        folder = Folder(id="f1", name="Test Folder", parent_id=None)
         db_session.add(folder)
         await db_session.commit()
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = sample_youtube_channel_response
 
-            payload = ChannelCreate(handle="@testchannel", folder_id=1)
+            payload = ChannelCreate(handle="@testchannel", folder_id="f1")
 
             channel = await create_channel(payload, db_session, mock_youtube_api)
 
-            assert channel.folder_id == 1
+            assert channel.folder_id == "f1"
 
     async def test_create_channel_with_missing_optional_fields(
         self, db_session, mock_youtube_api
