@@ -1,5 +1,5 @@
 from typing import Literal
-from sqlalchemy import delete
+from sqlalchemy import delete, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.tag import Tag
 from .crud_base import (
@@ -66,6 +66,45 @@ async def get_tags(
     )
 
 
+async def count_tags(
+    db: AsyncSession,
+    *,
+    id: str | list[str] | None = None,
+    name: str | None = None,
+) -> int:
+    """
+    Count tags matching the given filters.
+
+    Args:
+        db: Database session
+        id: Single tag ID or list of tag IDs for IN clause
+        name: Filter by tag name (case-insensitive)
+
+    Returns:
+        Total count of tags matching the filters
+    """
+    filters = {}
+    if id is not None:
+        filters["id"] = id
+    if name is not None:
+        # Normalize to lowercase for case-insensitive search
+        filters["name"] = name.lower()
+
+    # Build the count query
+    query = select(func.count()).select_from(Tag)
+
+    # Apply filters
+    for field_name, value in filters.items():
+        column = getattr(Tag, field_name)
+        if isinstance(value, list):
+            query = query.where(column.in_(value))
+        else:
+            query = query.where(column == value)
+
+    result = await db.execute(query)
+    return result.scalar() or 0
+
+
 async def create_tag(db_session: AsyncSession, tag_to_create: Tag) -> Tag:
     """
     Adds a new Tag instance to the database.
@@ -104,6 +143,7 @@ async def get_or_create_tag(db_session: AsyncSession, name: str) -> Tag:
 
     # Create new tag if it doesn't exist
     import uuid
+
     new_tag = Tag(id=str(uuid.uuid4()), name=name)
     return await create_tag(db_session, new_tag)
 

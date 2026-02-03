@@ -326,6 +326,9 @@ async def get_all_videos(
     if is_short is not None:
         filters["is_short"] = is_short
 
+    # Get total count before pagination
+    total = await crud_video.count_videos(db_session, **filters)
+
     # Get videos from CRUD layer
     videos = await crud_video.get_videos(
         db_session, limit=limit, offset=offset, **filters
@@ -348,11 +351,11 @@ async def get_all_videos(
             videos = [v for v in videos if v.published_at <= before_dt]
 
     return PaginatedResponse[VideoOut](
-        total=len(videos),
+        total=total,
         items=videos,
         limit=limit,
         offset=offset,
-        has_more=offset + len(videos) < len(videos),
+        has_more=(offset + limit) < total,
     )
 
 

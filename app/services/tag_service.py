@@ -88,16 +88,19 @@ async def get_all_tags(
     Returns:
         List of Tag instances
     """
-    tags = crud_tag.get_tags(
+    # Get total count before pagination
+    total = await crud_tag.count_tags(db_session)
+
+    tags = await crud_tag.get_tags(
         db_session, limit=limit, offset=offset, order_by="name", order_direction="asc"
     )
 
     return PaginatedResponse[TagOut](
-        total=len(tags),
+        total=total,
         items=tags,
         limit=limit,
         offset=offset,
-        has_more=offset + len(tags) < len(tags),
+        has_more=(offset + limit) < total if limit else False,
     )
 
 

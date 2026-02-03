@@ -20,10 +20,11 @@ The migration:
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import text
+import uuid
 
 
 # revision identifiers, used by Alembic.
-revision = "20260202_migrate_folder_tag_ids_to_uuid"
+revision = "20260202_folder_tag_uuid"
 down_revision = "20260130_merge_heads"
 branch_labels = None
 depends_on = None
@@ -51,32 +52,26 @@ def upgrade() -> None:
 
     # ========== STEP 2: Generate UUIDs for existing data ==========
 
-    # For testing compatibility (SQLite doesn't have UUID functions),
-    # we use a Python-based UUID generation approach
+    # Use Python's uuid module for database-agnostic UUID generation
+    # This works with both PostgreSQL and SQLite (for testing)
 
     # Generate UUIDs for folders
-    bind.execute(text("""
-        UPDATE folders
-        SET uuid_id = lower(
-            hex(randomblob(4)) || '-' ||
-            hex(randomblob(2)) || '-' ||
-            '4' || substr(hex(randomblob(2)), 2) || '-' ||
-            substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' ||
-            hex(randomblob(6))
+    folder_rows = bind.execute(text("SELECT id FROM folders")).fetchall()
+    for row in folder_rows:
+        new_uuid = str(uuid.uuid4())
+        bind.execute(
+            text("UPDATE folders SET uuid_id = :uuid WHERE id = :id"),
+            {"uuid": new_uuid, "id": row[0]}
         )
-    """))
 
     # Generate UUIDs for tags
-    bind.execute(text("""
-        UPDATE tags
-        SET uuid_id = lower(
-            hex(randomblob(4)) || '-' ||
-            hex(randomblob(2)) || '-' ||
-            '4' || substr(hex(randomblob(2)), 2) || '-' ||
-            substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' ||
-            hex(randomblob(6))
+    tag_rows = bind.execute(text("SELECT id FROM tags")).fetchall()
+    for row in tag_rows:
+        new_uuid = str(uuid.uuid4())
+        bind.execute(
+            text("UPDATE tags SET uuid_id = :uuid WHERE id = :id"),
+            {"uuid": new_uuid, "id": row[0]}
         )
-    """))
 
     # ========== STEP 3: Update foreign key references ==========
 

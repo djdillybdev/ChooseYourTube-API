@@ -1,5 +1,5 @@
 from typing import Literal, Any
-from sqlalchemy import insert, String
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.video import Video
 from ...schemas.video import VideoCreate
@@ -148,6 +148,67 @@ async def get_videos(
         first=first,
         special_ordering_handler=_apply_video_ordering,
     )
+
+
+async def count_videos(
+    db: AsyncSession,
+    *,
+    # Explicit parameters for common filters
+    id: str | list[str] | None = None,
+    channel_id: str | list[str] | None = None,
+    is_favorited: bool | None = None,
+    is_short: bool | None = None,
+    is_watched: bool | None = None,
+    # Catch-all for any other Video field
+    **kwargs: Any,
+) -> int:
+    """
+    Count videos matching the given filters.
+
+    Args:
+        id: Single video ID or list of video IDs for IN clause
+        channel_id: Single channel ID or list of channel IDs for IN clause
+        is_favorited: Filter by favorited status
+        is_short: Filter by YouTube Shorts
+        is_watched: Filter by watched status
+        **kwargs: Additional filter fields
+
+    Returns:
+        Total count of videos matching the filters
+    """
+    filters = {}
+    if id is not None:
+        filters["id"] = id
+    if channel_id is not None:
+        filters["channel_id"] = channel_id
+    if is_favorited is not None:
+        filters["is_favorited"] = is_favorited
+    if is_short is not None:
+        filters["is_short"] = is_short
+    if is_watched is not None:
+        filters["is_watched"] = is_watched
+
+    # Add any additional kwargs
+    for key, value in kwargs.items():
+        if value is not None:
+            filters[key] = value
+
+    for field_name in filters.keys():
+        _validate_filter_field(Video, field_name)
+
+    # Build the count query
+    query = select(func.count()).select_from(Video)
+
+    # Apply filters
+    for field_name, value in filters.items():
+        column = getattr(Video, field_name)
+        if isinstance(value, list):
+            query = query.where(column.in_(value))
+        else:
+            query = query.where(column == value)
+
+    result = await db.execute(query)
+    return result.scalar() or 0
 
 
 async def update_video(db: AsyncSession, video: Video) -> Video:
