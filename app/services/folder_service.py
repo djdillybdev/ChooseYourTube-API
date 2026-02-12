@@ -58,7 +58,13 @@ async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
     # Generate UUID for new folder
     folder_id = str(uuid.uuid4())
     return await crud_folder.create_folder(
-        db, Folder(id=folder_id, name=payload.name, parent_id=payload.parent_id)
+        db,
+        Folder(
+            id=folder_id,
+            name=payload.name,
+            parent_id=payload.parent_id,
+            icon_key=payload.icon_key,
+        ),
     )
 
 
@@ -84,7 +90,8 @@ async def update_folder(
         folder.name = payload.name
     if payload.parent_id is not _UNSET:
         folder.parent_id = payload.parent_id
-
+    if payload.icon_key is not None:
+        folder.icon_key = payload.icon_key
     return await crud_folder.update_folder(db, folder)
 
 

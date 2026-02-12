@@ -15,7 +15,13 @@ async def read_folder_tree(db_session: DBSessionDep):
 async def create_folder(payload: FolderCreate, db_session: DBSessionDep):
     f = await folder_service.create_folder(payload, db_session)
     return FolderOut.model_validate(
-        {"id": f.id, "name": f.name, "parent_id": f.parent_id, "children": []}
+        {
+            "id": f.id,
+            "name": f.name,
+            "icon_key": f.icon_key,
+            "parent_id": f.parent_id,
+            "children": [],
+        }
     )
 
 
@@ -25,7 +31,13 @@ async def rename_or_move_folder(
 ):
     f = await folder_service.update_folder(folder_id, payload, db_session)
     return FolderOut.model_validate(
-        {"id": f.id, "name": f.name, "parent_id": f.parent_id, "children": []}
+        {
+            "id": f.id,
+            "name": f.name,
+            "icon_key": f.icon_key,
+            "parent_id": f.parent_id,
+            "children": [],
+        }
     )
 
 
@@ -33,7 +45,13 @@ async def rename_or_move_folder(
 async def read_folder_by_id(folder_id: str, db_session: DBSessionDep):
     f = await folder_service.get_folder_by_id(folder_id, db_session)
     return FolderOut.model_validate(
-        {"id": f.id, "name": f.name, "parent_id": f.parent_id, "children": []}
+        {
+            "id": f.id,
+            "name": f.name,
+            "icon_key": f.icon_key,
+            "parent_id": f.parent_id,
+            "children": [],
+        }
     )
 
 

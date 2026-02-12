@@ -7,6 +7,8 @@ listing tree, creating, and updating folders.
 
 import pytest
 
+from app.db.models.folder import Folder
+
 
 @pytest.mark.asyncio
 class TestFoldersRouter:
@@ -21,7 +23,6 @@ class TestFoldersRouter:
 
     async def test_read_folder_tree_with_hierarchy(self, test_client, db_session):
         """Test GET /folders/tree returns hierarchical folder structure."""
-        from app.db.models.folder import Folder
 
         # Create folder hierarchy:
         # root1/
@@ -72,8 +73,6 @@ class TestFoldersRouter:
     # async def test_create_folder_with_parent(self, test_client, db_session):
     async def test_create_folder_with_parent(self, test_client, db_session):
         """Test POST /folders/ creates folder with parent."""
-        from app.db.models.folder import Folder
-
         # Create parent folder
         parent = Folder(id="1", name="Parent", parent_id=None)
         db_session.add(parent)
@@ -101,7 +100,6 @@ class TestFoldersRouter:
 
     async def test_update_folder_self_parent_raises_400(self, test_client, db_session):
         """Test PATCH /folders/{id} with self as parent returns 400."""
-        from app.db.models.folder import Folder
 
         folder = Folder(id="1", name="Test Folder", parent_id=None)
         db_session.add(folder)
@@ -114,7 +112,6 @@ class TestFoldersRouter:
 
     async def test_update_folder_cycle_raises_400(self, test_client, db_session):
         """Test PATCH /folders/{id} creating cycle returns 400."""
-        from app.db.models.folder import Folder
 
         # Create hierarchy: root -> child -> grandchild
         root = Folder(id="1", name="Root", parent_id=None)
@@ -134,7 +131,6 @@ class TestFoldersRouter:
 
     async def test_read_folder_by_id_found(self, test_client, db_session):
         """Test GET /folders/{id} returns the folder when it exists."""
-        from app.db.models.folder import Folder
 
         folder = Folder(id="10", name="Lookup Folder", parent_id=None)
         db_session.add(folder)
@@ -154,3 +150,32 @@ class TestFoldersRouter:
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
+
+    async def test_create_folder_with_icon_key(self, test_client, db_session):
+        """Test POST /folders/ creates root folder with icon_key."""
+        response = test_client.post(
+            "/folders/",
+            json={
+                "name": "New Root Folder with Icon",
+                "parent_id": None,
+                "icon_key": "test-icon",
+            },
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["name"] == "New Root Folder with Icon"
+        assert data["parent_id"] is None
+        assert data["icon_key"] == "test-icon"
+        assert "id" in data
+
+    async def test_update_folder_icon_key(self, test_client, db_session):
+        folder = Folder(id="1", name="Test Folder", parent_id=None, icon_key=None)
+        db_session.add(folder)
+        await db_session.commit()
+
+        response = test_client.patch("/folders/1", json={"icon_key": "updated-icon"})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["icon_key"] == "updated-icon"

@@ -17,6 +17,7 @@ class Folder(Base):
         String(36), primary_key=True, index=True, comment="UUID as string"
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    icon_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -24,9 +25,7 @@ class Folder(Base):
     # --- Relationships ---
 
     # Self-referencing relationship for sub-folders
-    parent_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("folders.id")
-    )
+    parent_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("folders.id"))
 
     # Relationship to Parent (Many-to-One to itself)
     # The `remote_side=[id]` is crucial for SQLAlchemy to understand how to join a table to itself.

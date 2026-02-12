@@ -11,6 +11,7 @@ class FolderCreate(BaseModel):
     """Schema for creating a new folder."""
 
     name: str
+    icon_key: str | None = None
     parent_id: str | None = None
 
 
@@ -18,6 +19,7 @@ class FolderUpdate(BaseModel):
     """Schema for updating a folder's name or moving it."""
 
     name: str | None = None
+    icon_key: str | None = None
     parent_id: str | None | object = _UNSET
 
 
@@ -32,5 +34,6 @@ class FolderOut(BaseSchema):
 
     id: str
     name: str
+    icon_key: str | None = None
     parent_id: str | None
     children: list["FolderOut"] = Field(default_factory=list)
