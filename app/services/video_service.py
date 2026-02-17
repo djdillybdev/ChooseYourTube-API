@@ -3,6 +3,7 @@ import feedparser
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Literal
 
 from datetime import datetime, timedelta
 
@@ -294,29 +295,27 @@ async def get_all_videos(
     is_short: bool | None = None,
     channel_id: str | list[str] | None = None,
     tag_id: str | None = None,
-    published_after: str | None = None,
-    published_before: str | None = None,
+    published_after: datetime | None = None,
+    published_before: datetime | None = None,
+    q: str | None = None,
+    order_by: str = "published_at",
+    order_direction: Literal["asc", "desc"] = "desc",
 ) -> PaginatedResponse[VideoOut]:
     """
-    Get all videos with optional filtering.
+    Get all videos with optional filtering and search.
 
-    Args:
-        db_session: Database session
-        limit: Maximum number of videos to return
-        offset: Number of videos to skip
-        is_favorited: Filter by favorited status
-        is_watched: Filter by watched status
-        is_short: Filter by short status
-        channel_id: Filter by single channel ID or list of channel IDs
-        tag_id: Filter by tag ID
-        published_after: Filter videos published after this date (ISO format)
-        published_before: Filter videos published before this date (ISO format)
+    All filters (including tag_id, date ranges, and search) are applied at the
+    SQL level for accurate pagination counts.
 
-    Returns:
-        List of Video instances matching the filters
+    When a search query is active and order_by is the default "published_at",
+    automatically switches to "relevance" sorting for better results.
     """
-    # Build filter kwargs
-    filters = {}
+    # Auto-relevance: when searching with default sort, prefer relevance
+    if q and order_by == "published_at":
+        order_by = "relevance"
+
+    # Build shared filter kwargs for both count and get
+    filters: dict = {}
     if channel_id is not None:
         filters["channel_id"] = channel_id
     if is_favorited is not None:
@@ -326,29 +325,25 @@ async def get_all_videos(
     if is_short is not None:
         filters["is_short"] = is_short
 
-    # Get total count before pagination
-    total = await crud_video.count_videos(db_session, **filters)
+    # Extended filters passed directly to CRUD layer
+    extended = {
+        "tag_id": tag_id,
+        "published_after": published_after,
+        "published_before": published_before,
+        "q": q,
+    }
 
-    # Get videos from CRUD layer
+    total = await crud_video.count_videos(db_session, **filters, **extended)
+
     videos = await crud_video.get_videos(
-        db_session, limit=limit, offset=offset, **filters
+        db_session,
+        limit=limit,
+        offset=offset,
+        order_by=order_by,
+        order_direction=order_direction,
+        **filters,
+        **extended,
     )
-
-    # Post-filter for tag_id (since tags are a relationship, not a direct field)
-    if tag_id is not None:
-        videos = [v for v in videos if any(tag.id == tag_id for tag in v.tags)]
-
-    # Post-filter for date ranges
-    if published_after is not None or published_before is not None:
-        from datetime import datetime
-
-        if published_after:
-            after_dt = datetime.fromisoformat(published_after.replace("Z", "+00:00"))
-            videos = [v for v in videos if v.published_at >= after_dt]
-
-        if published_before:
-            before_dt = datetime.fromisoformat(published_before.replace("Z", "+00:00"))
-            videos = [v for v in videos if v.published_at <= before_dt]
 
     return PaginatedResponse[VideoOut](
         total=total,

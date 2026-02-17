@@ -7,8 +7,10 @@ Tests dynamic filtering, pagination, ordering, and edge cases using TDD approach
 import pytest
 import pytest_asyncio
 from datetime import datetime, timezone, timedelta
-from app.db.crud.crud_video import get_videos
+from app.db.crud.crud_video import get_videos, count_videos
 from app.db.models.video import Video
+from app.db.models.tag import Tag
+from app.db.models.association_tables import video_tags
 
 
 @pytest_asyncio.fixture
@@ -485,3 +487,246 @@ class TestGetVideosListFiltering:
         assert len(results) == 7
         dates = [v.published_at for v in results if v.published_at]
         assert dates == sorted(dates)
+
+
+# Search Tests
+
+
+@pytest.mark.asyncio
+class TestGetVideosSearch:
+    """Tests for full-text search via q parameter."""
+
+    async def test_search_by_title(self, db_session, sample_videos):
+        """Should find videos with search term in title."""
+        results = await get_videos(db_session, q="Python")
+
+        # vid001: "Introduction to Python", vid002: "Quick Python Tip #shorts"
+        assert len(results) == 2
+        assert all("python" in v.title.lower() for v in results)
+
+    async def test_search_by_description(self, db_session, sample_videos):
+        """Should find videos with search term in description."""
+        # Add a description to one video
+        vid = sample_videos[4]  # vid005 "Database Design Tutorial"
+        vid.description = "Learn about PostgreSQL and database optimization"
+        await db_session.commit()
+
+        results = await get_videos(db_session, q="PostgreSQL")
+
+        assert len(results) == 1
+        assert results[0].id == "vid005"
+
+    async def test_search_case_insensitive(self, db_session, sample_videos):
+        """Search should be case-insensitive."""
+        results_lower = await get_videos(db_session, q="python")
+        results_upper = await get_videos(db_session, q="PYTHON")
+
+        assert len(results_lower) == len(results_upper)
+        assert {v.id for v in results_lower} == {v.id for v in results_upper}
+
+    async def test_search_empty_string_returns_all(self, db_session, sample_videos):
+        """Empty search string should be treated as no search."""
+        results = await get_videos(db_session, q="")
+
+        assert len(results) == 10
+
+    async def test_search_no_results(self, db_session, sample_videos):
+        """Should return empty list for non-matching search."""
+        results = await get_videos(db_session, q="xyznonexistent")
+
+        assert results == []
+
+    async def test_search_with_filters(self, db_session, sample_videos):
+        """Should combine search with other filters."""
+        results = await get_videos(db_session, q="Python", is_short=False)
+
+        # Only vid001 matches both: has "Python" in title and is_short=False
+        assert len(results) == 1
+        assert results[0].id == "vid001"
+
+    async def test_search_by_tag_name(self, db_session, sample_videos):
+        """Should find videos via matching tag names."""
+        # Create a tag and associate with vid005
+        tag = Tag(id="tag-search-1", name="machine learning")
+        db_session.add(tag)
+        await db_session.flush()
+
+        await db_session.execute(
+            video_tags.insert().values(video_id="vid005", tag_id="tag-search-1")
+        )
+        await db_session.commit()
+
+        results = await get_videos(db_session, q="machine learning")
+
+        assert any(v.id == "vid005" for v in results)
+
+
+# Tag ID Filter Tests
+
+
+@pytest.mark.asyncio
+class TestGetVideosTagIdFilter:
+    """Tests for tag_id filtering at SQL level."""
+
+    async def test_tag_id_filter(self, db_session, sample_videos):
+        """Should return only videos with the given tag."""
+        tag = Tag(id="tag-filter-1", name="favorites collection")
+        db_session.add(tag)
+        await db_session.flush()
+
+        # Associate tag with vid001 and vid003
+        await db_session.execute(
+            video_tags.insert().values(video_id="vid001", tag_id="tag-filter-1")
+        )
+        await db_session.execute(
+            video_tags.insert().values(video_id="vid003", tag_id="tag-filter-1")
+        )
+        await db_session.commit()
+
+        results = await get_videos(db_session, tag_id="tag-filter-1")
+
+        assert len(results) == 2
+        result_ids = {v.id for v in results}
+        assert result_ids == {"vid001", "vid003"}
+
+    async def test_tag_id_filter_no_match(self, db_session, sample_videos):
+        """Should return empty list when no videos have the tag."""
+        results = await get_videos(db_session, tag_id="nonexistent-tag")
+
+        assert results == []
+
+
+# Date Range Filter Tests
+
+
+@pytest.mark.asyncio
+class TestGetVideosDateRangeFilter:
+    """Tests for published_after/published_before at SQL level."""
+
+    async def test_published_after(self, db_session, sample_videos):
+        """Should return only videos published after the given date."""
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(days=3, hours=12)
+
+        results = await get_videos(db_session, published_after=cutoff)
+
+        # vid001 (1 day ago), vid002 (2 days ago), vid003 (3 days ago)
+        assert len(results) == 3
+        assert all(v.published_at >= cutoff for v in results)
+
+    async def test_published_before(self, db_session, sample_videos):
+        """Should return only videos published before the given date."""
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(days=7, hours=12)
+
+        results = await get_videos(db_session, published_before=cutoff)
+
+        # vid008 (8 days ago), vid009 (9 days ago), vid010 (10 days ago)
+        assert len(results) == 3
+        assert all(v.published_at <= cutoff for v in results)
+
+    async def test_date_range(self, db_session, sample_videos):
+        """Should filter by both published_after and published_before."""
+        now = datetime.now(timezone.utc)
+        after = now - timedelta(days=6, hours=12)
+        before = now - timedelta(days=2, hours=12)
+
+        results = await get_videos(
+            db_session, published_after=after, published_before=before
+        )
+
+        # vid003 (3d), vid004 (4d), vid005 (5d), vid006 (6d)
+        assert len(results) == 4
+        assert all(after <= v.published_at <= before for v in results)
+
+
+# Count with Extended Filters Tests
+
+
+@pytest.mark.asyncio
+class TestCountVideosExtendedFilters:
+    """Tests for count_videos with search, tag_id, and date filters."""
+
+    async def test_count_with_search(self, db_session, sample_videos):
+        """Count should match number of search results."""
+        results = await get_videos(db_session, q="Python")
+        count = await count_videos(db_session, q="Python")
+
+        assert count == len(results)
+
+    async def test_count_with_tag_id(self, db_session, sample_videos):
+        """Count should be accurate with tag_id filter."""
+        tag = Tag(id="tag-count-1", name="count test tag")
+        db_session.add(tag)
+        await db_session.flush()
+
+        await db_session.execute(
+            video_tags.insert().values(video_id="vid001", tag_id="tag-count-1")
+        )
+        await db_session.execute(
+            video_tags.insert().values(video_id="vid002", tag_id="tag-count-1")
+        )
+        await db_session.execute(
+            video_tags.insert().values(video_id="vid003", tag_id="tag-count-1")
+        )
+        await db_session.commit()
+
+        count = await count_videos(db_session, tag_id="tag-count-1")
+
+        assert count == 3
+
+    async def test_count_with_date_range(self, db_session, sample_videos):
+        """Count should be accurate with date range filter."""
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(days=3, hours=12)
+
+        results = await get_videos(db_session, published_after=cutoff)
+        count = await count_videos(db_session, published_after=cutoff)
+
+        assert count == len(results)
+
+
+# Prefix Search Tests
+
+
+@pytest.mark.asyncio
+class TestGetVideosPrefixSearch:
+    """Tests for prefix matching in search."""
+
+    async def test_search_prefix_matches(self, db_session, sample_videos):
+        """Prefix search like 'Pyt' should match 'Python' videos (SQLite LIKE)."""
+        results = await get_videos(db_session, q="Pyt")
+
+        # vid001: "Introduction to Python", vid002: "Quick Python Tip #shorts"
+        assert len(results) == 2
+        assert all("python" in v.title.lower() for v in results)
+
+
+# Relevance Ordering Tests
+
+
+@pytest.mark.asyncio
+class TestGetVideosRelevanceOrdering:
+    """Tests for order_by='relevance' support."""
+
+    async def test_relevance_order_by_with_q(self, db_session, sample_videos):
+        """order_by='relevance' with a search query should succeed."""
+        results = await get_videos(db_session, q="Python", order_by="relevance")
+
+        # Should return Python videos (SQLite falls back to published_at)
+        assert len(results) == 2
+        assert all("python" in v.title.lower() for v in results)
+
+    async def test_relevance_order_by_without_q(self, db_session, sample_videos):
+        """order_by='relevance' without q should fall back to published_at."""
+        results = await get_videos(db_session, order_by="relevance")
+
+        # Should return all videos sorted by published_at desc
+        assert len(results) == 10
+        dates = [v.published_at for v in results if v.published_at]
+        assert dates == sorted(dates, reverse=True)
+
+    async def test_invalid_order_by_still_raises(self, db_session, sample_videos):
+        """Non-relevance invalid order_by values should still raise ValueError."""
+        with pytest.raises(ValueError, match="Invalid order_by field"):
+            await get_videos(db_session, order_by="nonexistent_field")
