@@ -1,4 +1,5 @@
 from typing import Literal
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.folder import Folder
 from .crud_base import (
@@ -86,6 +87,86 @@ async def create_folder(db_session: AsyncSession, folder_to_create: Folder) -> F
     await db_session.commit()
     await db_session.refresh(folder_to_create)
     return folder_to_create
+
+
+async def get_max_position(db: AsyncSession, parent_id: str | None) -> int:
+    """Return the max position for siblings under the given parent, or -1 if empty."""
+    query = select(func.coalesce(func.max(Folder.position), -1))
+    if parent_id is None:
+        query = query.where(Folder.parent_id.is_(None))
+    else:
+        query = query.where(Folder.parent_id == parent_id)
+    result = await db.execute(query)
+    return result.scalar()
+
+
+async def shift_positions_for_insert(
+    db: AsyncSession, parent_id: str | None, start_position: int
+) -> None:
+    """Shift sibling positions down to make room for an insertion."""
+    if parent_id is None:
+        parent_filter = Folder.parent_id.is_(None)
+    else:
+        parent_filter = Folder.parent_id == parent_id
+
+    await db.execute(
+        update(Folder)
+        .where(parent_filter, Folder.position >= start_position)
+        .values(position=Folder.position + 1)
+    )
+
+
+async def shift_positions_after_removal(
+    db: AsyncSession, parent_id: str | None, removed_position: int
+) -> None:
+    """Compact sibling positions after a removal."""
+    if parent_id is None:
+        parent_filter = Folder.parent_id.is_(None)
+    else:
+        parent_filter = Folder.parent_id == parent_id
+
+    await db.execute(
+        update(Folder)
+        .where(parent_filter, Folder.position > removed_position)
+        .values(position=Folder.position - 1)
+    )
+
+
+async def shift_positions_for_move(
+    db: AsyncSession,
+    parent_id: str | None,
+    old_position: int,
+    new_position: int,
+) -> None:
+    """Shift sibling positions to accommodate a move within the same parent."""
+    if old_position == new_position:
+        return
+
+    if parent_id is None:
+        parent_filter = Folder.parent_id.is_(None)
+    else:
+        parent_filter = Folder.parent_id == parent_id
+
+    if old_position < new_position:
+        await db.execute(
+            update(Folder)
+            .where(
+                parent_filter,
+                Folder.position > old_position,
+                Folder.position <= new_position,
+            )
+            .values(position=Folder.position - 1)
+        )
+    else:
+        await db.execute(
+            update(Folder)
+            .where(
+                parent_filter,
+                Folder.position >= new_position,
+                Folder.position < old_position,
+            )
+            .values(position=Folder.position + 1)
+        )
 
 
 async def update_folder(db_session: AsyncSession, folder: Folder) -> Folder:

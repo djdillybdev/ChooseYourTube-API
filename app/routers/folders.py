@@ -20,6 +20,7 @@ async def create_folder(payload: FolderCreate, db_session: DBSessionDep):
             "name": f.name,
             "icon_key": f.icon_key,
             "parent_id": f.parent_id,
+            "position": f.position,
             "children": [],
         }
     )
@@ -36,6 +37,7 @@ async def rename_or_move_folder(
             "name": f.name,
             "icon_key": f.icon_key,
             "parent_id": f.parent_id,
+            "position": f.position,
             "children": [],
         }
     )
@@ -50,6 +52,7 @@ async def read_folder_by_id(folder_id: str, db_session: DBSessionDep):
             "name": f.name,
             "icon_key": f.icon_key,
             "parent_id": f.parent_id,
+            "position": f.position,
             "children": [],
         }
     )

@@ -13,6 +13,9 @@ class FolderCreate(BaseModel):
     name: str
     icon_key: str | None = None
     parent_id: str | None = None
+    position: int | None = Field(
+        None, ge=0, description="Sort position among siblings (appended if omitted)"
+    )
 
 
 class FolderUpdate(BaseModel):
@@ -21,6 +24,7 @@ class FolderUpdate(BaseModel):
     name: str | None = None
     icon_key: str | None = None
     parent_id: str | None | object = _UNSET
+    position: int | None = Field(None, ge=0, description="New sort position")
 
 
 # --- Output Schema ---
@@ -36,4 +40,5 @@ class FolderOut(BaseSchema):
     name: str
     icon_key: str | None = None
     parent_id: str | None
+    position: int
     children: list["FolderOut"] = Field(default_factory=list)

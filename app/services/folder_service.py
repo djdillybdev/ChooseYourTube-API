@@ -11,17 +11,28 @@ def _build_tree(folders: list[Folder]) -> list[FolderOut]:
     children_map: dict[str | None, list[str]] = {}
     for f in folders:
         nodes[f.id] = FolderOut(
-            id=f.id, name=f.name, parent_id=f.parent_id, children=[]
+            id=f.id,
+            name=f.name,
+            icon_key=f.icon_key,
+            parent_id=f.parent_id,
+            position=f.position,
+            children=[],
         )
         children_map.setdefault(f.parent_id, []).append(f.id)
 
+    def sorted_children(parent_id: str | None) -> list[str]:
+        return sorted(
+            children_map.get(parent_id, []),
+            key=lambda cid: (nodes[cid].position, nodes[cid].name, nodes[cid].id),
+        )
+
     def attach(node_id: str) -> FolderOut:
         node = nodes[node_id]
-        for cid in children_map.get(node_id, []):
+        for cid in sorted_children(node_id):
             node.children.append(attach(cid))
         return node
 
-    roots = [attach(fid) for fid in children_map.get(None, [])]
+    roots = [attach(fid) for fid in sorted_children(None)]
     return roots
 
 
@@ -57,6 +68,15 @@ async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
 
     # Generate UUID for new folder
     folder_id = str(uuid.uuid4())
+    max_position = await crud_folder.get_max_position(db, payload.parent_id)
+    if payload.position is None:
+        new_position = max_position + 1
+    else:
+        new_position = min(payload.position, max_position + 1)
+        await crud_folder.shift_positions_for_insert(
+            db, payload.parent_id, new_position
+        )
+
     return await crud_folder.create_folder(
         db,
         Folder(
@@ -64,6 +84,7 @@ async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
             name=payload.name,
             parent_id=payload.parent_id,
             icon_key=payload.icon_key,
+            position=new_position,
         ),
     )
 
@@ -86,10 +107,36 @@ async def update_folder(
         by_id = {f.id: f for f in all_folders}
         _assert_not_cycle(by_id, folder_id, payload.parent_id)
 
+    target_parent_id = (
+        folder.parent_id if payload.parent_id is _UNSET else payload.parent_id
+    )
+
+    if payload.parent_id is not _UNSET and target_parent_id != folder.parent_id:
+        await crud_folder.shift_positions_after_removal(
+            db, folder.parent_id, folder.position
+        )
+
+        max_position = await crud_folder.get_max_position(db, target_parent_id)
+        if payload.position is None:
+            new_position = max_position + 1
+        else:
+            new_position = min(payload.position, max_position + 1)
+            await crud_folder.shift_positions_for_insert(
+                db, target_parent_id, new_position
+            )
+
+        folder.parent_id = target_parent_id
+        folder.position = new_position
+    elif payload.position is not None and payload.position != folder.position:
+        max_position = await crud_folder.get_max_position(db, folder.parent_id)
+        new_position = min(payload.position, max_position)
+        await crud_folder.shift_positions_for_move(
+            db, folder.parent_id, folder.position, new_position
+        )
+        folder.position = new_position
+
     if payload.name is not None:
         folder.name = payload.name
-    if payload.parent_id is not _UNSET:
-        folder.parent_id = payload.parent_id
     if payload.icon_key is not None:
         folder.icon_key = payload.icon_key
     return await crud_folder.update_folder(db, folder)
