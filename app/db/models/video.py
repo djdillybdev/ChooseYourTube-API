@@ -15,11 +15,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.mutable import MutableList
 from ..base import Base
-from .association_tables import video_tags
+from .association_tables import video_tags, playlist_videos
 
 if TYPE_CHECKING:
     from .channel import Channel
     from .tag import Tag
+    from .playlist import Playlist
 
 
 class Video(Base):
@@ -75,6 +76,11 @@ class Video(Base):
     # Many-to-many relationship with Tags (separate from yt_tags which are YouTube metadata)
     tags: Mapped[list["Tag"]] = relationship(
         secondary=video_tags, back_populates="videos", lazy="selectin"
+    )
+
+    # Many-to-many relationship with Playlists
+    playlists: Mapped[list["Playlist"]] = relationship(
+        secondary=playlist_videos, back_populates="videos", lazy="selectin"
     )
 
     def __repr__(self) -> str:

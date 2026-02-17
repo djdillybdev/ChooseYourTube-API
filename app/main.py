@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
-from .routers import channels, videos, folders, tags, health
+from .routers import channels, videos, folders, tags, playlists, health
 
 logging.basicConfig(
     stream=sys.stdout, level=logging.DEBUG if settings.debug_logs else logging.INFO
@@ -32,6 +32,7 @@ app.include_router(channels.router)
 app.include_router(videos.router)
 app.include_router(folders.router)
 app.include_router(tags.router)
+app.include_router(playlists.router)
 app.include_router(health.router)
 
 
