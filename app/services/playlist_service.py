@@ -26,7 +26,7 @@ from ..schemas.playlist import (
 
 async def get_all_playlists(
     db_session: AsyncSession,
-    limit: int | None = None,
+    limit: int = 50,
     offset: int = 0,
     is_system: bool | None = None,
 ) -> PaginatedResponse[PlaylistOut]:
@@ -41,19 +41,21 @@ async def get_all_playlists(
         order_direction="asc",
     )
 
+    # Ensure playlists is a list (handles case where it might be None)
+    if not isinstance(playlists, list):
+        playlists = [] if playlists is None else [playlists]
+
     return PaginatedResponse[PlaylistOut](
         total=total,
         items=playlists,
         limit=limit,
         offset=offset,
-        has_more=(offset + limit) < total if limit else False,
+        has_more=(offset + limit) < total,
     )
 
 
 async def get_playlist_by_id(playlist_id: str, db_session: AsyncSession) -> Playlist:
-    playlist = await crud_playlist.get_playlists(
-        db_session, id=playlist_id, first=True
-    )
+    playlist = await crud_playlist.get_playlists(db_session, id=playlist_id, first=True)
     if not playlist:
         raise HTTPException(status_code=404, detail="Playlist not found")
     return playlist
@@ -111,9 +113,7 @@ async def update_playlist(
     return playlist
 
 
-async def delete_playlist_by_id(
-    playlist_id: str, db_session: AsyncSession
-) -> None:
+async def delete_playlist_by_id(playlist_id: str, db_session: AsyncSession) -> None:
     playlist = await get_playlist_by_id(playlist_id, db_session)
     await crud_playlist.delete_playlist(db_session, playlist)
 
@@ -125,9 +125,7 @@ async def set_playlist_videos(
 
     # Validate all video IDs exist
     if payload.video_ids:
-        existing_videos = await get_videos(
-            db_session, id=payload.video_ids
-        )
+        existing_videos = await get_videos(db_session, id=payload.video_ids)
         found_ids = {v.id for v in existing_videos}
         missing = set(payload.video_ids) - found_ids
         if missing:
@@ -136,14 +134,14 @@ async def set_playlist_videos(
                 detail=f"Videos not found: {', '.join(sorted(missing))}",
             )
 
-    await crud_playlist.set_playlist_videos(
-        db_session, playlist_id, payload.video_ids
-    )
+    await crud_playlist.set_playlist_videos(db_session, playlist_id, payload.video_ids)
 
     # Reset current_position if playlist was cleared or position is now out of bounds
     if not payload.video_ids:
         playlist.current_position = None
-    elif playlist.current_position is not None and playlist.current_position >= len(payload.video_ids):
+    elif playlist.current_position is not None and playlist.current_position >= len(
+        payload.video_ids
+    ):
         playlist.current_position = None
 
     db_session.add(playlist)
@@ -161,7 +159,9 @@ async def add_video_to_playlist(
     # Validate video exists
     video = await get_videos(db_session, id=payload.video_id, first=True)
     if not video:
-        raise HTTPException(status_code=400, detail=f"Video '{payload.video_id}' not found")
+        raise HTTPException(
+            status_code=400, detail=f"Video '{payload.video_id}' not found"
+        )
 
     await crud_playlist.add_video_to_playlist(
         db_session, playlist_id, payload.video_id, payload.position
@@ -239,18 +239,14 @@ async def remove_video_from_playlist(
     # Get position of video being removed (for current_position adjustment)
     video_ids = await crud_playlist.get_playlist_video_ids(db_session, playlist_id)
     if video_id not in video_ids:
-        raise HTTPException(
-            status_code=404, detail="Video not found in playlist"
-        )
+        raise HTTPException(status_code=404, detail="Video not found in playlist")
     removed_index = video_ids.index(video_id)
 
     rows = await crud_playlist.remove_video_from_playlist(
         db_session, playlist_id, video_id
     )
     if rows == 0:
-        raise HTTPException(
-            status_code=404, detail="Video not found in playlist"
-        )
+        raise HTTPException(status_code=404, detail="Video not found in playlist")
 
     # Adjust current_position
     if playlist.current_position is not None:
