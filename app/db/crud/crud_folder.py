@@ -15,6 +15,7 @@ _UNSET = object()
 async def get_folders(
     db: AsyncSession,
     *,
+    owner_id: str | None = None,
     # model params
     id: str | list[str] | None = None,
     name: str | None = None,
@@ -53,6 +54,8 @@ async def get_folders(
     _validate_order_by_field(Folder, order_by)
 
     filters = {}
+    if owner_id is not None:
+        filters["owner_id"] = owner_id
     if id is not None:
         filters["id"] = id
     if name is not None:
@@ -89,9 +92,12 @@ async def create_folder(db_session: AsyncSession, folder_to_create: Folder) -> F
     return folder_to_create
 
 
-async def get_max_position(db: AsyncSession, parent_id: str | None) -> int:
+async def get_max_position(
+    db: AsyncSession, parent_id: str | None, owner_id: str = "test-user"
+) -> int:
     """Return the max position for siblings under the given parent, or -1 if empty."""
     query = select(func.coalesce(func.max(Folder.position), -1))
+    query = query.where(Folder.owner_id == owner_id)
     if parent_id is None:
         query = query.where(Folder.parent_id.is_(None))
     else:
@@ -101,7 +107,10 @@ async def get_max_position(db: AsyncSession, parent_id: str | None) -> int:
 
 
 async def shift_positions_for_insert(
-    db: AsyncSession, parent_id: str | None, start_position: int
+    db: AsyncSession,
+    parent_id: str | None,
+    start_position: int,
+    owner_id: str = "test-user",
 ) -> None:
     """Shift sibling positions down to make room for an insertion."""
     if parent_id is None:
@@ -111,13 +120,16 @@ async def shift_positions_for_insert(
 
     await db.execute(
         update(Folder)
-        .where(parent_filter, Folder.position >= start_position)
+        .where(Folder.owner_id == owner_id, parent_filter, Folder.position >= start_position)
         .values(position=Folder.position + 1)
     )
 
 
 async def shift_positions_after_removal(
-    db: AsyncSession, parent_id: str | None, removed_position: int
+    db: AsyncSession,
+    parent_id: str | None,
+    removed_position: int,
+    owner_id: str = "test-user",
 ) -> None:
     """Compact sibling positions after a removal."""
     if parent_id is None:
@@ -127,7 +139,7 @@ async def shift_positions_after_removal(
 
     await db.execute(
         update(Folder)
-        .where(parent_filter, Folder.position > removed_position)
+        .where(Folder.owner_id == owner_id, parent_filter, Folder.position > removed_position)
         .values(position=Folder.position - 1)
     )
 
@@ -137,6 +149,7 @@ async def shift_positions_for_move(
     parent_id: str | None,
     old_position: int,
     new_position: int,
+    owner_id: str = "test-user",
 ) -> None:
     """Shift sibling positions to accommodate a move within the same parent."""
     if old_position == new_position:
@@ -151,6 +164,7 @@ async def shift_positions_for_move(
         await db.execute(
             update(Folder)
             .where(
+                Folder.owner_id == owner_id,
                 parent_filter,
                 Folder.position > old_position,
                 Folder.position <= new_position,
@@ -161,6 +175,7 @@ async def shift_positions_for_move(
         await db.execute(
             update(Folder)
             .where(
+                Folder.owner_id == owner_id,
                 parent_filter,
                 Folder.position >= new_position,
                 Folder.position < old_position,

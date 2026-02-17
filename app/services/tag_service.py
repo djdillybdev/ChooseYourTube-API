@@ -24,7 +24,10 @@ class TaggableEntity(Protocol):
 
 
 async def sync_entity_tags(
-    entity: TaggableEntity, tag_ids: list[str], db_session: AsyncSession
+    entity: TaggableEntity,
+    tag_ids: list[str],
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> None:
     """
     Synchronize tags for any entity (Channel or Video).
@@ -50,7 +53,7 @@ async def sync_entity_tags(
 
     for tag_id in requested_tag_ids:
         tag = await db_session.get(Tag, tag_id)
-        if tag is None:
+        if tag is None or tag.owner_id != owner_id:
             raise HTTPException(
                 status_code=400, detail=f"Tag with id {tag_id} does not exist"
             )
@@ -75,7 +78,10 @@ async def sync_entity_tags(
 
 
 async def get_all_tags(
-    db_session: AsyncSession, limit: int | None = None, offset: int = 0
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
+    limit: int | None = None,
+    offset: int = 0,
 ) -> PaginatedResponse[TagOut]:
     """
     Get all tags with pagination.
@@ -89,10 +95,15 @@ async def get_all_tags(
         List of Tag instances
     """
     # Get total count before pagination
-    total = await crud_tag.count_tags(db_session)
+    total = await crud_tag.count_tags(db_session, owner_id=owner_id)
 
     tags = await crud_tag.get_tags(
-        db_session, limit=limit, offset=offset, order_by="name", order_direction="asc"
+        db_session,
+        owner_id=owner_id,
+        limit=limit,
+        offset=offset,
+        order_by="name",
+        order_direction="asc",
     )
 
     return PaginatedResponse[TagOut](
@@ -104,7 +115,9 @@ async def get_all_tags(
     )
 
 
-async def get_tag_by_id(tag_id: str, db_session: AsyncSession) -> Tag:
+async def get_tag_by_id(
+    tag_id: str, db_session: AsyncSession, owner_id: str = "test-user"
+) -> Tag:
     """
     Get a tag by its ID.
 
@@ -118,13 +131,15 @@ async def get_tag_by_id(tag_id: str, db_session: AsyncSession) -> Tag:
     Raises:
         HTTPException: If tag not found
     """
-    tag = await crud_tag.get_tags(db_session, id=tag_id, first=True)
+    tag = await crud_tag.get_tags(db_session, owner_id=owner_id, id=tag_id, first=True)
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     return tag
 
 
-async def create_new_tag(payload: TagCreate, db_session: AsyncSession) -> Tag:
+async def create_new_tag(
+    payload: TagCreate, db_session: AsyncSession, owner_id: str = "test-user"
+) -> Tag:
     """
     Create a new tag.
 
@@ -139,7 +154,9 @@ async def create_new_tag(payload: TagCreate, db_session: AsyncSession) -> Tag:
         HTTPException: If tag with same name already exists
     """
     # Check if tag with this name already exists
-    existing_tag = await crud_tag.get_tags(db_session, name=payload.name, first=True)
+    existing_tag = await crud_tag.get_tags(
+        db_session, owner_id=owner_id, name=payload.name, first=True
+    )
     if existing_tag:
         raise HTTPException(
             status_code=409, detail=f"Tag with name '{payload.name}' already exists"
@@ -147,7 +164,7 @@ async def create_new_tag(payload: TagCreate, db_session: AsyncSession) -> Tag:
 
     # Generate UUID for new tag
     tag_id = str(uuid.uuid4())
-    new_tag = Tag(id=tag_id, name=payload.name)
+    new_tag = Tag(id=tag_id, owner_id=owner_id, name=payload.name)
     try:
         return await crud_tag.create_tag(db_session, new_tag)
     except IntegrityError:
@@ -157,7 +174,12 @@ async def create_new_tag(payload: TagCreate, db_session: AsyncSession) -> Tag:
         )
 
 
-async def update_tag(tag_id: str, payload: TagUpdate, db_session: AsyncSession) -> Tag:
+async def update_tag(
+    tag_id: str,
+    payload: TagUpdate,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
+) -> Tag:
     """
     Update a tag's name.
 
@@ -173,13 +195,13 @@ async def update_tag(tag_id: str, payload: TagUpdate, db_session: AsyncSession) 
         HTTPException: If tag not found or new name conflicts with existing tag
     """
     # Get existing tag
-    tag = await get_tag_by_id(tag_id, db_session)
+    tag = await get_tag_by_id(tag_id, db_session, owner_id=owner_id)
 
     # Update name if provided
     if payload.name is not None:
         # Check if new name conflicts with existing tag
         existing_tag = await crud_tag.get_tags(
-            db_session, name=payload.name, first=True
+            db_session, owner_id=owner_id, name=payload.name, first=True
         )
         if existing_tag and existing_tag.id != tag_id:
             raise HTTPException(
@@ -194,7 +216,9 @@ async def update_tag(tag_id: str, payload: TagUpdate, db_session: AsyncSession) 
     return tag
 
 
-async def delete_tag_by_id(tag_id: str, db_session: AsyncSession) -> None:
+async def delete_tag_by_id(
+    tag_id: str, db_session: AsyncSession, owner_id: str = "test-user"
+) -> None:
     """
     Delete a tag by its ID.
 
@@ -206,14 +230,18 @@ async def delete_tag_by_id(tag_id: str, db_session: AsyncSession) -> None:
         HTTPException: If tag not found
     """
     # Get tag to ensure it exists
-    tag = await get_tag_by_id(tag_id, db_session)
+    tag = await get_tag_by_id(tag_id, db_session, owner_id=owner_id)
 
     # Delete the tag (relationships will be cleaned up automatically)
     await crud_tag.delete_tag(db_session, tag)
 
 
 async def get_videos_for_tag(
-    tag_id: str, db_session: AsyncSession, limit: int = 50, offset: int = 0
+    tag_id: str,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
+    limit: int = 50,
+    offset: int = 0,
 ):
     """
     Get all videos associated with a tag.
@@ -231,7 +259,7 @@ async def get_videos_for_tag(
         HTTPException: If tag not found
     """
     # Get tag with videos relationship
-    tag = await get_tag_by_id(tag_id, db_session)
+    tag = await get_tag_by_id(tag_id, db_session, owner_id=owner_id)
 
     # Return videos (already loaded via selectin)
     # Note: This doesn't use limit/offset on the videos themselves
@@ -240,7 +268,11 @@ async def get_videos_for_tag(
 
 
 async def get_channels_for_tag(
-    tag_id: str, db_session: AsyncSession, limit: int = 50, offset: int = 0
+    tag_id: str,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
+    limit: int = 50,
+    offset: int = 0,
 ):
     """
     Get all channels associated with a tag.
@@ -258,7 +290,7 @@ async def get_channels_for_tag(
         HTTPException: If tag not found
     """
     # Get tag with channels relationship
-    tag = await get_tag_by_id(tag_id, db_session)
+    tag = await get_tag_by_id(tag_id, db_session, owner_id=owner_id)
 
     # Return channels (already loaded via selectin)
     return tag.channels[offset : offset + limit] if limit else tag.channels[offset:]

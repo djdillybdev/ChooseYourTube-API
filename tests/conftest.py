@@ -30,6 +30,7 @@ from app.main import app  # noqa: E402
 from app.db.session import get_db_session  # noqa: E402
 from app.clients.youtube import get_youtube_api  # noqa: E402
 from app.queue import get_arq_redis  # noqa: E402
+from app.auth.deps import current_active_user  # noqa: E402
 
 
 @pytest.fixture
@@ -135,6 +136,7 @@ def test_client(db_session, mock_youtube_api, mock_arq_redis):
     app.dependency_overrides[get_db_session] = override_get_db_session
     app.dependency_overrides[get_youtube_api] = lambda: mock_youtube_api
     app.dependency_overrides[get_arq_redis] = lambda: mock_arq_redis
+    app.dependency_overrides[current_active_user] = lambda: MagicMock(id="test-user")
 
     client = TestClient(app)
     yield client

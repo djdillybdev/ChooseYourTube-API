@@ -15,6 +15,7 @@ _UNSET = object()
 async def get_channels(
     db: AsyncSession,
     *,
+    owner_id: str | None = None,
     id: str | list[str] | None = None,
     title: str | None = None,
     handle: str | None = None,
@@ -58,6 +59,8 @@ async def get_channels(
     _validate_order_by_field(Channel, order_by)
 
     filters = {}
+    if owner_id is not None:
+        filters["owner_id"] = owner_id
     if id is not None:
         filters["id"] = id
     if title is not None:
@@ -117,11 +120,14 @@ async def delete_channel(db_session: AsyncSession, channel_to_delete: Channel) -
     await db_session.commit()
 
 
-async def delete_all_channels(db_session: AsyncSession) -> int:
+async def delete_all_channels(db_session: AsyncSession, owner_id: str | None = None) -> int:
     """
     Deletes all channels from the database and returns the count of deleted rows.
     This is a bulk operation.
     """
-    result = await db_session.execute(delete(Channel))
+    stmt = delete(Channel)
+    if owner_id is not None:
+        stmt = stmt.where(Channel.owner_id == owner_id)
+    result = await db_session.execute(stmt)
     await db_session.commit()
     return result.rowcount

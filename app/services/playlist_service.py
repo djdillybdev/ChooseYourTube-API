@@ -26,14 +26,18 @@ from ..schemas.playlist import (
 
 async def get_all_playlists(
     db_session: AsyncSession,
+    owner_id: str = "test-user",
     limit: int = 50,
     offset: int = 0,
     is_system: bool | None = None,
 ) -> PaginatedResponse[PlaylistOut]:
-    total = await crud_playlist.count_playlists(db_session, is_system=is_system)
+    total = await crud_playlist.count_playlists(
+        db_session, owner_id=owner_id, is_system=is_system
+    )
 
     playlists = await crud_playlist.get_playlists(
         db_session,
+        owner_id=owner_id,
         is_system=is_system,
         limit=limit,
         offset=offset,
@@ -54,17 +58,23 @@ async def get_all_playlists(
     )
 
 
-async def get_playlist_by_id(playlist_id: str, db_session: AsyncSession) -> Playlist:
-    playlist = await crud_playlist.get_playlists(db_session, id=playlist_id, first=True)
+async def get_playlist_by_id(
+    playlist_id: str, db_session: AsyncSession, owner_id: str = "test-user"
+) -> Playlist:
+    playlist = await crud_playlist.get_playlists(
+        db_session, owner_id=owner_id, id=playlist_id, first=True
+    )
     if not playlist:
         raise HTTPException(status_code=404, detail="Playlist not found")
     return playlist
 
 
 async def _build_detail_out(
-    playlist: Playlist, db_session: AsyncSession
+    playlist: Playlist, db_session: AsyncSession, owner_id: str = "test-user"
 ) -> PlaylistDetailOut:
-    video_ids = await crud_playlist.get_playlist_video_ids(db_session, playlist.id)
+    video_ids = await crud_playlist.get_playlist_video_ids(
+        db_session, playlist.id, owner_id=owner_id
+    )
     return PlaylistDetailOut(
         id=playlist.id,
         name=playlist.name,
@@ -78,18 +88,19 @@ async def _build_detail_out(
 
 
 async def get_playlist_detail(
-    playlist_id: str, db_session: AsyncSession
+    playlist_id: str, db_session: AsyncSession, owner_id: str = "test-user"
 ) -> PlaylistDetailOut:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
-    return await _build_detail_out(playlist, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    return await _build_detail_out(playlist, db_session, owner_id=owner_id)
 
 
 async def create_new_playlist(
-    payload: PlaylistCreate, db_session: AsyncSession
+    payload: PlaylistCreate, db_session: AsyncSession, owner_id: str = "test-user"
 ) -> Playlist:
     playlist_id = str(uuid.uuid4())
     new_playlist = Playlist(
         id=playlist_id,
+        owner_id=owner_id,
         name=payload.name,
         description=payload.description,
         is_system=payload.is_system,
@@ -98,9 +109,12 @@ async def create_new_playlist(
 
 
 async def update_playlist(
-    playlist_id: str, payload: PlaylistUpdate, db_session: AsyncSession
+    playlist_id: str,
+    payload: PlaylistUpdate,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> Playlist:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
 
     if payload.name is not None:
         playlist.name = payload.name
@@ -113,19 +127,26 @@ async def update_playlist(
     return playlist
 
 
-async def delete_playlist_by_id(playlist_id: str, db_session: AsyncSession) -> None:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+async def delete_playlist_by_id(
+    playlist_id: str, db_session: AsyncSession, owner_id: str = "test-user"
+) -> None:
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
     await crud_playlist.delete_playlist(db_session, playlist)
 
 
 async def set_playlist_videos(
-    playlist_id: str, payload: PlaylistSetVideos, db_session: AsyncSession
+    playlist_id: str,
+    payload: PlaylistSetVideos,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> PlaylistDetailOut:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
 
     # Validate all video IDs exist
     if payload.video_ids:
-        existing_videos = await get_videos(db_session, id=payload.video_ids)
+        existing_videos = await get_videos(
+            db_session, owner_id=owner_id, id=payload.video_ids
+        )
         found_ids = {v.id for v in existing_videos}
         missing = set(payload.video_ids) - found_ids
         if missing:
@@ -134,7 +155,9 @@ async def set_playlist_videos(
                 detail=f"Videos not found: {', '.join(sorted(missing))}",
             )
 
-    await crud_playlist.set_playlist_videos(db_session, playlist_id, payload.video_ids)
+    await crud_playlist.set_playlist_videos(
+        db_session, playlist_id, payload.video_ids, owner_id=owner_id
+    )
 
     # Reset current_position if playlist was cleared or position is now out of bounds
     if not payload.video_ids:
@@ -148,35 +171,45 @@ async def set_playlist_videos(
     await db_session.commit()
     await db_session.refresh(playlist)
 
-    return await _build_detail_out(playlist, db_session)
+    return await _build_detail_out(playlist, db_session, owner_id=owner_id)
 
 
 async def add_video_to_playlist(
-    playlist_id: str, payload: PlaylistAddVideo, db_session: AsyncSession
+    playlist_id: str,
+    payload: PlaylistAddVideo,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> PlaylistDetailOut:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
 
     # Validate video exists
-    video = await get_videos(db_session, id=payload.video_id, first=True)
+    video = await get_videos(
+        db_session, owner_id=owner_id, id=payload.video_id, first=True
+    )
     if not video:
         raise HTTPException(
             status_code=400, detail=f"Video '{payload.video_id}' not found"
         )
 
     await crud_playlist.add_video_to_playlist(
-        db_session, playlist_id, payload.video_id, payload.position
+        db_session, playlist_id, payload.video_id, payload.position, owner_id=owner_id
     )
 
-    return await _build_detail_out(playlist, db_session)
+    return await _build_detail_out(playlist, db_session, owner_id=owner_id)
 
 
 async def add_videos_to_playlist(
-    playlist_id: str, payload: PlaylistAddVideos, db_session: AsyncSession
+    playlist_id: str,
+    payload: PlaylistAddVideos,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> PlaylistDetailOut:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
 
     # Validate all video IDs exist
-    existing_videos = await get_videos(db_session, id=payload.video_ids)
+    existing_videos = await get_videos(
+        db_session, owner_id=owner_id, id=payload.video_ids
+    )
     found_ids = {v.id for v in existing_videos}
     missing = set(payload.video_ids) - found_ids
     if missing:
@@ -186,35 +219,47 @@ async def add_videos_to_playlist(
         )
 
     await crud_playlist.bulk_add_videos_to_playlist(
-        db_session, playlist_id, payload.video_ids, payload.position
+        db_session, playlist_id, payload.video_ids, payload.position, owner_id=owner_id
     )
 
-    return await _build_detail_out(playlist, db_session)
+    return await _build_detail_out(playlist, db_session, owner_id=owner_id)
 
 
 async def move_video_in_playlist(
-    playlist_id: str, payload: PlaylistMoveVideo, db_session: AsyncSession
+    playlist_id: str,
+    payload: PlaylistMoveVideo,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> PlaylistDetailOut:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
 
     try:
         await crud_playlist.move_video_in_playlist(
-            db_session, playlist_id, payload.video_id, payload.new_position
+            db_session,
+            playlist_id,
+            payload.video_id,
+            payload.new_position,
+            owner_id=owner_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    return await _build_detail_out(playlist, db_session)
+    return await _build_detail_out(playlist, db_session, owner_id=owner_id)
 
 
 async def set_playlist_position(
-    playlist_id: str, payload: PlaylistSetPosition, db_session: AsyncSession
+    playlist_id: str,
+    payload: PlaylistSetPosition,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> PlaylistDetailOut:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
 
     if payload.current_position is not None:
         # Validate position is within bounds
-        max_pos = await crud_playlist.get_max_position(db_session, playlist_id)
+        max_pos = await crud_playlist.get_max_position(
+            db_session, playlist_id, owner_id=owner_id
+        )
         if max_pos == -1:
             raise HTTPException(status_code=400, detail="Playlist is empty")
         if payload.current_position > max_pos:
@@ -228,22 +273,27 @@ async def set_playlist_position(
     await db_session.commit()
     await db_session.refresh(playlist)
 
-    return await _build_detail_out(playlist, db_session)
+    return await _build_detail_out(playlist, db_session, owner_id=owner_id)
 
 
 async def remove_video_from_playlist(
-    playlist_id: str, video_id: str, db_session: AsyncSession
+    playlist_id: str,
+    video_id: str,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> None:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
 
     # Get position of video being removed (for current_position adjustment)
-    video_ids = await crud_playlist.get_playlist_video_ids(db_session, playlist_id)
+    video_ids = await crud_playlist.get_playlist_video_ids(
+        db_session, playlist_id, owner_id=owner_id
+    )
     if video_id not in video_ids:
         raise HTTPException(status_code=404, detail="Video not found in playlist")
     removed_index = video_ids.index(video_id)
 
     rows = await crud_playlist.remove_video_from_playlist(
-        db_session, playlist_id, video_id
+        db_session, playlist_id, video_id, owner_id=owner_id
     )
     if rows == 0:
         raise HTTPException(status_code=404, detail="Video not found in playlist")
@@ -266,28 +316,32 @@ async def remove_video_from_playlist(
 
 
 async def clear_playlist(
-    playlist_id: str, db_session: AsyncSession
+    playlist_id: str, db_session: AsyncSession, owner_id: str = "test-user"
 ) -> PlaylistDetailOut:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
 
-    await crud_playlist.clear_playlist_videos(db_session, playlist_id)
+    await crud_playlist.clear_playlist_videos(
+        db_session, playlist_id, owner_id=owner_id
+    )
 
     playlist.current_position = None
     db_session.add(playlist)
     await db_session.commit()
     await db_session.refresh(playlist)
 
-    return await _build_detail_out(playlist, db_session)
+    return await _build_detail_out(playlist, db_session, owner_id=owner_id)
 
 
 async def shuffle_playlist(
-    playlist_id: str, db_session: AsyncSession
+    playlist_id: str, db_session: AsyncSession, owner_id: str = "test-user"
 ) -> PlaylistDetailOut:
-    playlist = await get_playlist_by_id(playlist_id, db_session)
+    playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
 
-    video_ids = await crud_playlist.get_playlist_video_ids(db_session, playlist_id)
+    video_ids = await crud_playlist.get_playlist_video_ids(
+        db_session, playlist_id, owner_id=owner_id
+    )
     if len(video_ids) <= 1:
-        return await _build_detail_out(playlist, db_session)
+        return await _build_detail_out(playlist, db_session, owner_id=owner_id)
 
     current_pos = playlist.current_position
 
@@ -302,6 +356,8 @@ async def shuffle_playlist(
         random.shuffle(video_ids)
         new_order = video_ids
 
-    await crud_playlist.set_playlist_videos(db_session, playlist_id, new_order)
+    await crud_playlist.set_playlist_videos(
+        db_session, playlist_id, new_order, owner_id=owner_id
+    )
 
-    return await _build_detail_out(playlist, db_session)
+    return await _build_detail_out(playlist, db_session, owner_id=owner_id)

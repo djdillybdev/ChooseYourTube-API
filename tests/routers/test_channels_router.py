@@ -114,7 +114,9 @@ class TestChannelsRouter:
 
         # Verify background job was enqueued
         mock_arq_redis.enqueue_job.assert_called_once_with(
-            "fetch_and_store_all_channel_videos_task", channel_id="UC_new_channel"
+            "fetch_and_store_all_channel_videos_task",
+            owner_id="test-user",
+            channel_id="UC_new_channel",
         )
 
     async def test_create_channel_with_folder(

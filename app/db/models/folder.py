@@ -16,6 +16,9 @@ class Folder(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, index=True, comment="UUID as string"
     )
+    owner_id: Mapped[str] = mapped_column(
+        String(36), nullable=False, index=True, default="test-user"
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     icon_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

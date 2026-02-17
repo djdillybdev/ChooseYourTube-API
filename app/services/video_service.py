@@ -90,7 +90,9 @@ def _classify_is_short(duration_seconds: int, snippet: dict) -> bool:
     return SHORTS_DEFAULT_TO_SHORT  # ambiguous case
 
 
-async def fetch_and_store_all_channel_videos_task(ctx, channel_id: str):
+async def fetch_and_store_all_channel_videos_task(
+    ctx, channel_id: str, owner_id: str = "test-user"
+):
     """
     Background TASK to fetch all videos. Accepts a channel_id.
     Manages its own DB session and YouTube client.
@@ -100,7 +102,9 @@ async def fetch_and_store_all_channel_videos_task(ctx, channel_id: str):
     youtube_client = YouTubeAPI(api_key=settings.YOUTUBE_API_KEY)
 
     async with sessionmanager.session() as db_session:
-        channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
+        channel = await crud_channel.get_channels(
+            db_session, owner_id=owner_id, id=channel_id, first=True
+        )
         if not channel:
             print(f"Channel {channel_id} not found in DB. Exiting task.")
             return
@@ -149,11 +153,13 @@ async def fetch_and_store_all_channel_videos_task(ctx, channel_id: str):
             return
 
         await create_and_update_videos(
-            video_ids, channel_id, db_session, youtube_client
+            video_ids, channel_id, db_session, youtube_client, owner_id=owner_id
         )
 
 
-async def refresh_latest_channel_videos_task(ctx, channel_id: str):
+async def refresh_latest_channel_videos_task(
+    ctx, channel_id: str, owner_id: str = "test-user"
+):
     """
     Background TASK to fetch and add the latest videos for a channel
     """
@@ -162,11 +168,16 @@ async def refresh_latest_channel_videos_task(ctx, channel_id: str):
     youtube_client = YouTubeAPI(api_key=settings.YOUTUBE_API_KEY)
 
     async with sessionmanager.session() as db_session:
-        await refresh_latest_channel_videos(channel_id, db_session, youtube_client)
+        await refresh_latest_channel_videos(
+            channel_id, db_session, youtube_client, owner_id=owner_id
+        )
 
 
 async def refresh_latest_channel_videos(
-    channel_id: str, db_session: AsyncSession, youtube_client: YouTubeAPI
+    channel_id: str,
+    db_session: AsyncSession,
+    youtube_client: YouTubeAPI,
+    owner_id: str = "test-user",
 ):
     """
     Fetch and add the latest videos for a channel
@@ -188,7 +199,9 @@ async def refresh_latest_channel_videos(
     total_parsed_videos = len(parsed_video_ids)
 
     seen_video_ids = []
-    latest_videos = await crud_video.get_videos(db_session, channel_id=channel_id)
+    latest_videos = await crud_video.get_videos(
+        db_session, owner_id=owner_id, channel_id=channel_id
+    )
     for video in latest_videos:
         if video.id in parsed_video_ids:
             seen_video_ids.append(video.id)
@@ -198,7 +211,9 @@ async def refresh_latest_channel_videos(
     if len(seen_video_ids) == total_parsed_videos:
         return
     if len(seen_video_ids) == 0:
-        channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
+        channel = await crud_channel.get_channels(
+            db_session, owner_id=owner_id, id=channel_id, first=True
+        )
         if not channel:
             print(f"Channel {channel_id} not found in DB. Exiting task.")
             return
@@ -225,7 +240,7 @@ async def refresh_latest_channel_videos(
         video_ids_to_update = parsed_video_ids
 
     await create_and_update_videos(
-        video_ids_to_update, channel_id, db_session, youtube_client
+        video_ids_to_update, channel_id, db_session, youtube_client, owner_id=owner_id
     )
 
 
@@ -234,6 +249,7 @@ async def create_and_update_videos(
     channel_id: str,
     db_session: AsyncSession,
     youtube_client: YouTubeAPI,
+    owner_id: str = "test-user",
 ):
     full_video_items = []
     print("get video items")
@@ -259,6 +275,7 @@ async def create_and_update_videos(
 
         new_video = VideoCreate(
             id=video_id,
+            owner_id=owner_id,
             channel_id=channel_id,
             title=snippet.get("title"),
             description=snippet.get("description"),
@@ -279,8 +296,12 @@ async def create_and_update_videos(
         print("job success")
 
 
-async def get_video_by_id(video_id: str, db_session: AsyncSession) -> Video:
-    video = await crud_video.get_videos(db_session, id=video_id, first=True)
+async def get_video_by_id(
+    video_id: str, db_session: AsyncSession, owner_id: str = "test-user"
+) -> Video:
+    video = await crud_video.get_videos(
+        db_session, owner_id=owner_id, id=video_id, first=True
+    )
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
     return video
@@ -288,6 +309,7 @@ async def get_video_by_id(video_id: str, db_session: AsyncSession) -> Video:
 
 async def get_all_videos(
     db_session: AsyncSession,
+    owner_id: str = "test-user",
     limit: int = 50,
     offset: int = 0,
     is_favorited: bool | None = None,
@@ -333,10 +355,13 @@ async def get_all_videos(
         "q": q,
     }
 
-    total = await crud_video.count_videos(db_session, **filters, **extended)
+    total = await crud_video.count_videos(
+        db_session, owner_id=owner_id, **filters, **extended
+    )
 
     videos = await crud_video.get_videos(
         db_session,
+        owner_id=owner_id,
         limit=limit,
         offset=offset,
         order_by=order_by,
@@ -355,20 +380,29 @@ async def get_all_videos(
 
 
 async def get_videos_for_channel(
-    channel_id: str, db_session: AsyncSession, limit: int = 50, offset: int = 0
+    channel_id: str,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
+    limit: int = 50,
+    offset: int = 0,
 ) -> list[Video]:
     return await crud_video.get_videos(
-        db_session, channel_id=channel_id, limit=limit, offset=offset
+        db_session, owner_id=owner_id, channel_id=channel_id, limit=limit, offset=offset
     )
 
 
 async def update_video(
-    video_id: str, payload: VideoUpdate, db_session: AsyncSession
+    video_id: str,
+    payload: VideoUpdate,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> Video:
     """
     Updates a video by its ID. Allows updating favorited status, watched status, short status, and tags.
     """
-    video = await crud_video.get_videos(db_session, id=video_id, first=True)
+    video = await crud_video.get_videos(
+        db_session, owner_id=owner_id, id=video_id, first=True
+    )
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
 
@@ -384,17 +418,19 @@ async def update_video(
     if payload.tag_ids is not None:
         from .tag_service import sync_entity_tags
 
-        await sync_entity_tags(video, payload.tag_ids, db_session)
+        await sync_entity_tags(video, payload.tag_ids, db_session, owner_id=owner_id)
 
     return await crud_video.update_video(db_session, video)
 
 
-async def delete_video_by_id(video_id: str, db_session: AsyncSession) -> None:
+async def delete_video_by_id(
+    video_id: str, db_session: AsyncSession, owner_id: str = "test-user"
+) -> None:
     """
     Deletes a video by its ID. Verifies it exists first.
     """
     # First, get the video to ensure it exists (this also handles the 404 case)
-    video_to_delete = await get_video_by_id(video_id, db_session)
+    video_to_delete = await get_video_by_id(video_id, db_session, owner_id=owner_id)
 
     # Now, pass the object to the CRUD layer for deletion
     await crud_video.delete_video(db_session, video_to_delete)

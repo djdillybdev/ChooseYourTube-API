@@ -24,10 +24,9 @@ async def enqueue_channel_refreshes(ctx):
     """
     Hourly cron. Enqueue one refresh job per channel with a unique job id.
     """
-    # Load channels (get the paginated response, then use its items list)
+    # Load channels for default owner context used by existing jobs/tests.
     async with sessionmanager.session() as db:
         paginated = await channel_service.get_all_channels(db)
-        # `get_all_channels` may return a PaginatedResponse or a raw list
         channels = paginated.items if hasattr(paginated, "items") else paginated
 
     # Stagger enqueues to smooth load

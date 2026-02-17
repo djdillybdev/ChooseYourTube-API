@@ -130,9 +130,11 @@ def _apply_extended_filters(
 
     # tag_id filter: INNER JOIN video_tags
     if tag_id is not None:
-        query = query.join(video_tags, Video.id == video_tags.c.video_id).where(
-            video_tags.c.tag_id == tag_id
-        )
+        query = query.join(
+            video_tags,
+            (Video.id == video_tags.c.video_id)
+            & (Video.owner_id == video_tags.c.owner_id),
+        ).where(video_tags.c.tag_id == tag_id)
 
     # Search: text search OR tag name search
     if q:
@@ -140,13 +142,21 @@ def _apply_extended_filters(
         if tag_id is not None:
             search_vt = video_tags.alias("search_vt")
             query = (
-                query.outerjoin(search_vt, Video.id == search_vt.c.video_id)
+                query.outerjoin(
+                    search_vt,
+                    (Video.id == search_vt.c.video_id)
+                    & (Video.owner_id == search_vt.c.owner_id),
+                )
                 .outerjoin(Tag, search_vt.c.tag_id == Tag.id)
                 .where(or_(video_cond, tag_cond))
             )
         else:
             query = (
-                query.outerjoin(video_tags, Video.id == video_tags.c.video_id)
+                query.outerjoin(
+                    video_tags,
+                    (Video.id == video_tags.c.video_id)
+                    & (Video.owner_id == video_tags.c.owner_id),
+                )
                 .outerjoin(Tag, video_tags.c.tag_id == Tag.id)
                 .where(or_(video_cond, tag_cond))
             )
@@ -191,13 +201,13 @@ async def create_videos_bulk(
         from sqlalchemy.dialects.sqlite import insert as dialect_insert
 
         stmt = dialect_insert(Video).values(video_dicts)
-        stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
+        stmt = stmt.on_conflict_do_nothing(index_elements=["owner_id", "id"])
     else:
         # Default to Postgres-style insert which supports ON CONFLICT
         from sqlalchemy.dialects.postgresql import insert as dialect_insert
 
         stmt = dialect_insert(Video).values(video_dicts)
-        stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
+        stmt = stmt.on_conflict_do_nothing(index_elements=["owner_id", "id"])
 
     await db_session.execute(stmt)
     await db_session.commit()
@@ -206,6 +216,7 @@ async def create_videos_bulk(
 async def get_videos(
     db: AsyncSession,
     *,
+    owner_id: str | None = None,
     # Explicit parameters for common filters
     id: str | list[str] | None = None,
     channel_id: str | list[str] | None = None,
@@ -270,6 +281,8 @@ async def get_videos(
         order_by = "published_at"
 
     filters = {}
+    if owner_id is not None:
+        filters["owner_id"] = owner_id
     if id is not None:
         filters["id"] = id
     if channel_id is not None:
@@ -358,6 +371,7 @@ async def get_videos(
 async def count_videos(
     db: AsyncSession,
     *,
+    owner_id: str | None = None,
     # Explicit parameters for common filters
     id: str | list[str] | None = None,
     channel_id: str | list[str] | None = None,
@@ -395,6 +409,8 @@ async def count_videos(
         q = None
 
     filters = {}
+    if owner_id is not None:
+        filters["owner_id"] = owner_id
     if id is not None:
         filters["id"] = id
     if channel_id is not None:

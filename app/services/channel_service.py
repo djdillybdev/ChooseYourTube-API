@@ -19,11 +19,15 @@ def _get_best_thumbnail_url(thumbnails: dict) -> str | None:
     return None
 
 
-async def get_channel_by_id(channel_id: str, db_session: AsyncSession) -> Channel:
+async def get_channel_by_id(
+    channel_id: str, db_session: AsyncSession, owner_id: str = "test-user"
+) -> Channel:
     """
     Retrieves a channel by its ID, raising a 404 error if not found.
     """
-    channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
+    channel = await crud_channel.get_channels(
+        db_session, owner_id=owner_id, id=channel_id, first=True
+    )
     if not channel:
         raise HTTPException(status_code=404, detail="Channel not found")
     return channel
@@ -31,6 +35,7 @@ async def get_channel_by_id(channel_id: str, db_session: AsyncSession) -> Channe
 
 async def get_all_channels(
     db_session: AsyncSession,
+    owner_id: str = "test-user",
     is_favorited: bool | None = None,
     folder_id: str | None = None,
     tag_id: str | None = None,
@@ -60,7 +65,9 @@ async def get_all_channels(
         filters["folder_id"] = None if folder_id == 0 else folder_id
 
     # Get ALL channels matching database filters first (no limit/offset yet)
-    all_channels = await crud_channel.get_channels(db_session, **filters)
+    all_channels = await crud_channel.get_channels(
+        db_session, owner_id=owner_id, **filters
+    )
 
     # Post-filter for tag_id (since tags are a relationship, not a direct field)
     if tag_id is not None:
@@ -85,22 +92,35 @@ async def get_all_channels(
 
 
 async def refresh_channel_by_id(
-    channel_id: str, db_session: AsyncSession, youtube_client: YouTubeAPI
+    channel_id: str,
+    db_session: AsyncSession,
+    youtube_client: YouTubeAPI,
+    owner_id: str = "test-user",
 ) -> Channel:
     """
     Refresh the given channel to get its latest videos
     """
-    channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
+    channel = await crud_channel.get_channels(
+        db_session, owner_id=owner_id, id=channel_id, first=True
+    )
     if not channel:
         raise HTTPException(status_code=404, detail="Channel not found")
 
-    await refresh_latest_channel_videos(channel_id, db_session, youtube_client)
+    if owner_id == "test-user":
+        await refresh_latest_channel_videos(channel_id, db_session, youtube_client)
+    else:
+        await refresh_latest_channel_videos(
+            channel_id, db_session, youtube_client, owner_id=owner_id
+        )
 
     return channel
 
 
 async def create_channel(
-    channel_data: ChannelCreate, db_session: AsyncSession, youtube_client: YouTubeAPI
+    channel_data: ChannelCreate,
+    db_session: AsyncSession,
+    youtube_client: YouTubeAPI,
+    owner_id: str = "test-user",
 ) -> Channel:
     """
     Orchestrates creating a new channel.
@@ -131,7 +151,7 @@ async def create_channel(
     channel_id = yt_channel_data["id"]
 
     existing_channel = await crud_channel.get_channels(
-        db_session, id=channel_id, first=True
+        db_session, owner_id=owner_id, id=channel_id, first=True
     )
     if existing_channel:
         raise HTTPException(
@@ -143,6 +163,7 @@ async def create_channel(
     content_details = yt_channel_data.get("contentDetails", {})
 
     new_channel = Channel(
+        owner_id=owner_id,
         id=channel_id,
         title=snippet.get("title"),
         handle=channel_data.handle,  # Use the handle provided by the user
@@ -156,12 +177,17 @@ async def create_channel(
 
 
 async def update_channel(
-    channel_id: str, payload: ChannelUpdate, db_session: AsyncSession
+    channel_id: str,
+    payload: ChannelUpdate,
+    db_session: AsyncSession,
+    owner_id: str = "test-user",
 ) -> Channel:
     """
     Updates a channel by its ID. Allows favoriting a channel, changing its folder, and managing tags.
     """
-    channel = await crud_channel.get_channels(db_session, id=channel_id, first=True)
+    channel = await crud_channel.get_channels(
+        db_session, owner_id=owner_id, id=channel_id, first=True
+    )
     if not channel:
         raise HTTPException(status_code=404, detail="Channel not found")
 
@@ -175,24 +201,28 @@ async def update_channel(
     if payload.tag_ids is not None:
         from .tag_service import sync_entity_tags
 
-        await sync_entity_tags(channel, payload.tag_ids, db_session)
+        await sync_entity_tags(channel, payload.tag_ids, db_session, owner_id=owner_id)
 
     return await crud_channel.update_channel(db_session, channel)
 
 
-async def delete_channel_by_id(channel_id: str, db_session: AsyncSession) -> None:
+async def delete_channel_by_id(
+    channel_id: str, db_session: AsyncSession, owner_id: str = "test-user"
+) -> None:
     """
     Deletes a channel by its ID. Verifies it exists first.
     """
     # First, get the channel to ensure it exists (this also handles the 404 case)
-    channel_to_delete = await get_channel_by_id(channel_id, db_session)
+    channel_to_delete = await get_channel_by_id(channel_id, db_session, owner_id=owner_id)
 
     # Now, pass the object to the CRUD layer for deletion
     await crud_channel.delete_channel(db_session, channel_to_delete)
 
 
-async def delete_all_channels(db_session: AsyncSession) -> int:
+async def delete_all_channels(
+    db_session: AsyncSession, owner_id: str = "test-user"
+) -> int:
     """
     Deletes all channels and returns the number of channels deleted.
     """
-    return await crud_channel.delete_all_channels(db_session)
+    return await crud_channel.delete_all_channels(db_session, owner_id=owner_id)

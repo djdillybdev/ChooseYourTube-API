@@ -14,6 +14,7 @@ from .crud_base import (
 async def get_playlists(
     db: AsyncSession,
     *,
+    owner_id: str | None = None,
     id: str | list[str] | None = None,
     name: str | None = None,
     is_system: bool | None = None,
@@ -29,6 +30,8 @@ async def get_playlists(
     _validate_order_by_field(Playlist, order_by)
 
     filters = {}
+    if owner_id is not None:
+        filters["owner_id"] = owner_id
     if id is not None:
         filters["id"] = id
     if name is not None:
@@ -51,11 +54,14 @@ async def get_playlists(
 async def count_playlists(
     db: AsyncSession,
     *,
+    owner_id: str | None = None,
     id: str | list[str] | None = None,
     name: str | None = None,
     is_system: bool | None = None,
 ) -> int:
     filters = {}
+    if owner_id is not None:
+        filters["owner_id"] = owner_id
     if id is not None:
         filters["id"] = id
     if name is not None:
@@ -88,32 +94,44 @@ async def delete_playlist(db: AsyncSession, playlist: Playlist) -> Playlist:
     return playlist
 
 
-async def get_playlist_video_ids(db: AsyncSession, playlist_id: str) -> list[str]:
+async def get_playlist_video_ids(
+    db: AsyncSession, playlist_id: str, owner_id: str = "test-user"
+) -> list[str]:
     """Get ordered video IDs for a playlist."""
     query = (
         select(playlist_videos.c.video_id)
-        .where(playlist_videos.c.playlist_id == playlist_id)
+        .where(
+            playlist_videos.c.owner_id == owner_id,
+            playlist_videos.c.playlist_id == playlist_id,
+        )
         .order_by(playlist_videos.c.position.asc())
     )
     result = await db.execute(query)
     return list(result.scalars().all())
 
 
-async def get_max_position(db: AsyncSession, playlist_id: str) -> int:
+async def get_max_position(
+    db: AsyncSession, playlist_id: str, owner_id: str = "test-user"
+) -> int:
     """Return the max position in a playlist, or -1 if empty."""
     query = select(func.coalesce(func.max(playlist_videos.c.position), -1)).where(
-        playlist_videos.c.playlist_id == playlist_id
+        playlist_videos.c.owner_id == owner_id,
+        playlist_videos.c.playlist_id == playlist_id,
     )
     result = await db.execute(query)
     return result.scalar()
 
 
 async def set_playlist_videos(
-    db: AsyncSession, playlist_id: str, video_ids: list[str]
+    db: AsyncSession,
+    playlist_id: str,
+    video_ids: list[str],
+    owner_id: str = "test-user",
 ) -> None:
     """Replace all videos in a playlist with the given ordered list."""
     await db.execute(
         delete(playlist_videos).where(
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.playlist_id == playlist_id
         )
     )
@@ -123,6 +141,7 @@ async def set_playlist_videos(
             insert(playlist_videos),
             [
                 {
+                    "owner_id": owner_id,
                     "playlist_id": playlist_id,
                     "video_id": vid,
                     "position": idx,
@@ -136,12 +155,17 @@ async def set_playlist_videos(
 
 
 async def add_video_to_playlist(
-    db: AsyncSession, playlist_id: str, video_id: str, position: int | None = None
+    db: AsyncSession,
+    playlist_id: str,
+    video_id: str,
+    position: int | None = None,
+    owner_id: str = "test-user",
 ) -> None:
     """Add a single video to a playlist. If already present, move it instead."""
     # Check if video already exists in the playlist
     existing = await db.execute(
         select(playlist_videos.c.position).where(
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.playlist_id == playlist_id,
             playlist_videos.c.video_id == video_id,
         )
@@ -151,19 +175,22 @@ async def add_video_to_playlist(
     if existing_pos is not None:
         # Video already in playlist — move it to the requested position
         if position is None:
-            position = await get_max_position(db, playlist_id)
-        await _move_video(db, playlist_id, video_id, existing_pos, position)
+            position = await get_max_position(db, playlist_id, owner_id=owner_id)
+        await _move_video(
+            db, playlist_id, video_id, existing_pos, position, owner_id=owner_id
+        )
         await db.commit()
         return
 
     if position is None:
-        position = (await get_max_position(db, playlist_id)) + 1
+        position = (await get_max_position(db, playlist_id, owner_id=owner_id)) + 1
     else:
         # Shift existing items at >= position down
         await db.execute(
             update(playlist_videos)
             .where(
                 playlist_videos.c.playlist_id == playlist_id,
+                playlist_videos.c.owner_id == owner_id,
                 playlist_videos.c.position >= position,
             )
             .values(position=playlist_videos.c.position + 1)
@@ -172,6 +199,7 @@ async def add_video_to_playlist(
     await db.execute(
         insert(playlist_videos).values(
             playlist_id=playlist_id,
+            owner_id=owner_id,
             video_id=video_id,
             position=position,
             created_at=datetime.now(timezone.utc),
@@ -181,12 +209,13 @@ async def add_video_to_playlist(
 
 
 async def remove_video_from_playlist(
-    db: AsyncSession, playlist_id: str, video_id: str
+    db: AsyncSession, playlist_id: str, video_id: str, owner_id: str = "test-user"
 ) -> int:
     """Remove a video from a playlist and compact positions. Returns number of rows deleted."""
     # Get the position of the video being removed
     result = await db.execute(
         select(playlist_videos.c.position).where(
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.playlist_id == playlist_id,
             playlist_videos.c.video_id == video_id,
         )
@@ -199,6 +228,7 @@ async def remove_video_from_playlist(
     # Delete the association
     await db.execute(
         delete(playlist_videos).where(
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.playlist_id == playlist_id,
             playlist_videos.c.video_id == video_id,
         )
@@ -209,6 +239,7 @@ async def remove_video_from_playlist(
         update(playlist_videos)
         .where(
             playlist_videos.c.playlist_id == playlist_id,
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.position > removed_position,
         )
         .values(position=playlist_videos.c.position - 1)
@@ -224,6 +255,7 @@ async def _move_video(
     video_id: str,
     old_position: int,
     new_position: int,
+    owner_id: str = "test-user",
 ) -> None:
     """Move a video from old_position to new_position, shifting others accordingly."""
     if old_position == new_position:
@@ -233,6 +265,7 @@ async def _move_video(
     await db.execute(
         update(playlist_videos)
         .where(
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.playlist_id == playlist_id,
             playlist_videos.c.video_id == video_id,
         )
@@ -245,6 +278,7 @@ async def _move_video(
             update(playlist_videos)
             .where(
                 playlist_videos.c.playlist_id == playlist_id,
+                playlist_videos.c.owner_id == owner_id,
                 playlist_videos.c.position > old_position,
                 playlist_videos.c.position <= new_position,
             )
@@ -256,6 +290,7 @@ async def _move_video(
             update(playlist_videos)
             .where(
                 playlist_videos.c.playlist_id == playlist_id,
+                playlist_videos.c.owner_id == owner_id,
                 playlist_videos.c.position >= new_position,
                 playlist_videos.c.position < old_position,
             )
@@ -266,6 +301,7 @@ async def _move_video(
     await db.execute(
         update(playlist_videos)
         .where(
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.playlist_id == playlist_id,
             playlist_videos.c.video_id == video_id,
         )
@@ -274,12 +310,17 @@ async def _move_video(
 
 
 async def move_video_in_playlist(
-    db: AsyncSession, playlist_id: str, video_id: str, new_position: int
+    db: AsyncSession,
+    playlist_id: str,
+    video_id: str,
+    new_position: int,
+    owner_id: str = "test-user",
 ) -> None:
     """Move a video to a new position in a playlist."""
     # Get current position
     result = await db.execute(
         select(playlist_videos.c.position).where(
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.playlist_id == playlist_id,
             playlist_videos.c.video_id == video_id,
         )
@@ -290,10 +331,12 @@ async def move_video_in_playlist(
         raise ValueError(f"Video '{video_id}' not found in playlist")
 
     # Clamp new_position to valid range
-    max_pos = await get_max_position(db, playlist_id)
+    max_pos = await get_max_position(db, playlist_id, owner_id=owner_id)
     new_position = min(new_position, max_pos)
 
-    await _move_video(db, playlist_id, video_id, old_position, new_position)
+    await _move_video(
+        db, playlist_id, video_id, old_position, new_position, owner_id=owner_id
+    )
     await db.commit()
 
 
@@ -302,11 +345,13 @@ async def bulk_add_videos_to_playlist(
     playlist_id: str,
     video_ids: list[str],
     start_position: int | None = None,
+    owner_id: str = "test-user",
 ) -> None:
     """Add multiple videos to a playlist. Duplicates are moved to new positions."""
     # Find which videos already exist in this playlist
     result = await db.execute(
         select(playlist_videos.c.video_id).where(
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.playlist_id == playlist_id,
             playlist_videos.c.video_id.in_(video_ids),
         )
@@ -319,21 +364,23 @@ async def bulk_add_videos_to_playlist(
             if vid in existing_ids:
                 await db.execute(
                     delete(playlist_videos).where(
+                        playlist_videos.c.owner_id == owner_id,
                         playlist_videos.c.playlist_id == playlist_id,
                         playlist_videos.c.video_id == vid,
                     )
                 )
         # Compact positions after removals
-        await _compact_positions(db, playlist_id)
+        await _compact_positions(db, playlist_id, owner_id=owner_id)
 
     if start_position is None:
-        start_position = (await get_max_position(db, playlist_id)) + 1
+        start_position = (await get_max_position(db, playlist_id, owner_id=owner_id)) + 1
     else:
         # Shift existing items at >= start_position
         await db.execute(
             update(playlist_videos)
             .where(
                 playlist_videos.c.playlist_id == playlist_id,
+                playlist_videos.c.owner_id == owner_id,
                 playlist_videos.c.position >= start_position,
             )
             .values(position=playlist_videos.c.position + len(video_ids))
@@ -351,6 +398,7 @@ async def bulk_add_videos_to_playlist(
         insert(playlist_videos),
         [
             {
+                "owner_id": owner_id,
                 "playlist_id": playlist_id,
                 "video_id": vid,
                 "position": start_position + idx,
@@ -363,21 +411,29 @@ async def bulk_add_videos_to_playlist(
     await db.commit()
 
 
-async def clear_playlist_videos(db: AsyncSession, playlist_id: str) -> None:
+async def clear_playlist_videos(
+    db: AsyncSession, playlist_id: str, owner_id: str = "test-user"
+) -> None:
     """Delete all video associations for a playlist."""
     await db.execute(
         delete(playlist_videos).where(
+            playlist_videos.c.owner_id == owner_id,
             playlist_videos.c.playlist_id == playlist_id
         )
     )
     await db.commit()
 
 
-async def _compact_positions(db: AsyncSession, playlist_id: str) -> None:
+async def _compact_positions(
+    db: AsyncSession, playlist_id: str, owner_id: str = "test-user"
+) -> None:
     """Re-number positions to be contiguous starting from 0."""
     result = await db.execute(
         select(playlist_videos.c.video_id, playlist_videos.c.position)
-        .where(playlist_videos.c.playlist_id == playlist_id)
+        .where(
+            playlist_videos.c.owner_id == owner_id,
+            playlist_videos.c.playlist_id == playlist_id,
+        )
         .order_by(playlist_videos.c.position.asc())
     )
     rows = result.all()
@@ -387,6 +443,7 @@ async def _compact_positions(db: AsyncSession, playlist_id: str) -> None:
             await db.execute(
                 update(playlist_videos)
                 .where(
+                    playlist_videos.c.owner_id == owner_id,
                     playlist_videos.c.playlist_id == playlist_id,
                     playlist_videos.c.video_id == video_id,
                 )

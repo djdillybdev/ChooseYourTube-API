@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     # API_ORIGIN: str = "http://localhost:5173"
     API_ORIGIN: str
     YOUTUBE_API_KEY: str
+    AUTH_SECRET: str = "change-me-in-production"
     SHORTS_MAX_SECONDS: int = 60
     echo_sql: bool = False
     debug_logs: bool = True

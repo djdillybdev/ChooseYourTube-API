@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Text, DateTime, Boolean, Integer
+from sqlalchemy import String, Text, DateTime, Boolean, Integer, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..base import Base
 from .association_tables import playlist_videos
@@ -16,6 +16,9 @@ class Playlist(Base):
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, comment="UUID as string"
+    )
+    owner_id: Mapped[str] = mapped_column(
+        String(36), nullable=False, index=True, default="test-user"
     )
     name: Mapped[str] = mapped_column(
         String(255), nullable=False, index=True
@@ -33,7 +36,11 @@ class Playlist(Base):
 
     # Many-to-many relationship with Videos
     videos: Mapped[list["Video"]] = relationship(
-        secondary=playlist_videos, back_populates="playlists", lazy="selectin"
+        secondary=playlist_videos,
+        primaryjoin="and_(Playlist.owner_id == playlist_videos.c.owner_id, Playlist.id == playlist_videos.c.playlist_id)",
+        secondaryjoin="and_(Video.owner_id == playlist_videos.c.owner_id, Video.id == playlist_videos.c.video_id)",
+        back_populates="playlists",
+        lazy="selectin",
     )
 
     def __repr__(self) -> str:

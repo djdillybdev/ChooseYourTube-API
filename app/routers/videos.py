@@ -4,7 +4,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.schemas.base import PaginatedResponse
-from ..dependencies import DBSessionDep
+from ..dependencies import DBSessionDep, CurrentUserDep
 from ..schemas.video import VideoOut, VideoUpdate
 from ..services import video_service
 
@@ -27,6 +27,7 @@ def _parse_iso_date(value: str, param_name: str) -> datetime:
 @router.get("/", response_model=PaginatedResponse[VideoOut])
 async def list_videos(
     db_session: DBSessionDep,
+    user: CurrentUserDep,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     is_favorited: bool | None = Query(None, description="Filter by favorited status"),
@@ -95,6 +96,7 @@ async def list_videos(
     parsed_before = _parse_iso_date(published_before, "published_before") if published_before else None
 
     return await video_service.get_all_videos(
+        owner_id=str(user.id),
         db_session=db_session,
         limit=limit,
         offset=offset,
@@ -112,35 +114,46 @@ async def list_videos(
 
 
 @router.get("/{video_id}", response_model=VideoOut)
-async def get_video_by_id(video_id: str, db_session: DBSessionDep):
-    return await video_service.get_video_by_id(video_id=video_id, db_session=db_session)
+async def get_video_by_id(video_id: str, db_session: DBSessionDep, user: CurrentUserDep):
+    return await video_service.get_video_by_id(
+        video_id=video_id, db_session=db_session, owner_id=str(user.id)
+    )
 
 
 @router.get("/by-channel/{channel_id}", response_model=list[VideoOut])
 async def list_videos_by_channel(
     channel_id: str,
     db_session: DBSessionDep,
+    user: CurrentUserDep,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
     return await video_service.get_videos_for_channel(
-        channel_id=channel_id, db_session=db_session, limit=limit, offset=offset
+        channel_id=channel_id,
+        db_session=db_session,
+        limit=limit,
+        offset=offset,
+        owner_id=str(user.id),
     )
 
 
 @router.patch("/{video_id}", response_model=VideoOut)
-async def update_video(video_id: str, payload: VideoUpdate, db_session: DBSessionDep):
+async def update_video(
+    video_id: str, payload: VideoUpdate, db_session: DBSessionDep, user: CurrentUserDep
+):
     """
     Update video metadata (favorited, watched, short status, tags).
     """
     return await video_service.update_video(
-        video_id=video_id, payload=payload, db_session=db_session
+        video_id=video_id, payload=payload, db_session=db_session, owner_id=str(user.id)
     )
 
 
 @router.delete("/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_video(video_id: str, db_session: DBSessionDep):
+async def delete_video(video_id: str, db_session: DBSessionDep, user: CurrentUserDep):
     """
     Delete a video by its ID.
     """
-    await video_service.delete_video_by_id(video_id=video_id, db_session=db_session)
+    await video_service.delete_video_by_id(
+        video_id=video_id, db_session=db_session, owner_id=str(user.id)
+    )

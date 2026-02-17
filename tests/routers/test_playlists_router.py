@@ -91,7 +91,9 @@ async def sample_playlist_with_videos(db_session, sample_channel):
     await db_session.refresh(playlist)
 
     # Add videos to playlist
-    await crud_set_videos(db_session, playlist.id, [v.id for v in videos])
+    await crud_set_videos(
+        db_session, playlist.id, [v.id for v in videos], owner_id=playlist.owner_id
+    )
 
     return playlist
 

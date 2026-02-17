@@ -48,39 +48,48 @@ def _assert_not_cycle(
         cur = folders_by_id[cur].parent_id
 
 
-async def get_tree(db: AsyncSession) -> list[FolderOut]:
-    folders = await crud_folder.get_folders(db, limit=None)
+async def get_tree(db: AsyncSession, owner_id: str = "test-user") -> list[FolderOut]:
+    folders = await crud_folder.get_folders(db, owner_id=owner_id, limit=None)
     return _build_tree(folders)
 
 
-async def get_folder_by_id(folder_id: str, db: AsyncSession) -> Folder:
-    folder = await crud_folder.get_folders(db, id=folder_id, first=True)
+async def get_folder_by_id(
+    folder_id: str, db: AsyncSession, owner_id: str = "test-user"
+) -> Folder:
+    folder = await crud_folder.get_folders(db, owner_id=owner_id, id=folder_id, first=True)
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
     return folder
 
 
-async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
+async def create_folder(
+    payload: FolderCreate, db: AsyncSession, owner_id: str = "test-user"
+) -> Folder:
     if payload.parent_id:
-        parent = await crud_folder.get_folders(db, id=payload.parent_id, first=True)
+        parent = await crud_folder.get_folders(
+            db, owner_id=owner_id, id=payload.parent_id, first=True
+        )
         if not parent:
             raise HTTPException(status_code=404, detail="Parent folder not found")
 
     # Generate UUID for new folder
     folder_id = str(uuid.uuid4())
-    max_position = await crud_folder.get_max_position(db, payload.parent_id)
+    max_position = await crud_folder.get_max_position(
+        db, payload.parent_id, owner_id=owner_id
+    )
     if payload.position is None:
         new_position = max_position + 1
     else:
         new_position = min(payload.position, max_position + 1)
         await crud_folder.shift_positions_for_insert(
-            db, payload.parent_id, new_position
+            db, payload.parent_id, new_position, owner_id=owner_id
         )
 
     return await crud_folder.create_folder(
         db,
         Folder(
             id=folder_id,
+            owner_id=owner_id,
             name=payload.name,
             parent_id=payload.parent_id,
             icon_key=payload.icon_key,
@@ -90,9 +99,14 @@ async def create_folder(payload: FolderCreate, db: AsyncSession) -> Folder:
 
 
 async def update_folder(
-    folder_id: str, payload: FolderUpdate, db: AsyncSession
+    folder_id: str,
+    payload: FolderUpdate,
+    db: AsyncSession,
+    owner_id: str = "test-user",
 ) -> Folder:
-    folder = await crud_folder.get_folders(db, id=folder_id, first=True)
+    folder = await crud_folder.get_folders(
+        db, owner_id=owner_id, id=folder_id, first=True
+    )
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
@@ -100,10 +114,12 @@ async def update_folder(
         raise HTTPException(status_code=400, detail="Folder cannot be its own parent")
 
     if payload.parent_id is not None and payload.parent_id is not _UNSET:
-        parent = await crud_folder.get_folders(db, id=payload.parent_id, first=True)
+        parent = await crud_folder.get_folders(
+            db, owner_id=owner_id, id=payload.parent_id, first=True
+        )
         if not parent:
             raise HTTPException(status_code=404, detail="New parent not found")
-        all_folders = await crud_folder.get_folders(db, limit=None)
+        all_folders = await crud_folder.get_folders(db, owner_id=owner_id, limit=None)
         by_id = {f.id: f for f in all_folders}
         _assert_not_cycle(by_id, folder_id, payload.parent_id)
 
@@ -113,25 +129,29 @@ async def update_folder(
 
     if payload.parent_id is not _UNSET and target_parent_id != folder.parent_id:
         await crud_folder.shift_positions_after_removal(
-            db, folder.parent_id, folder.position
+            db, folder.parent_id, folder.position, owner_id=owner_id
         )
 
-        max_position = await crud_folder.get_max_position(db, target_parent_id)
+        max_position = await crud_folder.get_max_position(
+            db, target_parent_id, owner_id=owner_id
+        )
         if payload.position is None:
             new_position = max_position + 1
         else:
             new_position = min(payload.position, max_position + 1)
             await crud_folder.shift_positions_for_insert(
-                db, target_parent_id, new_position
+                db, target_parent_id, new_position, owner_id=owner_id
             )
 
         folder.parent_id = target_parent_id
         folder.position = new_position
     elif payload.position is not None and payload.position != folder.position:
-        max_position = await crud_folder.get_max_position(db, folder.parent_id)
+        max_position = await crud_folder.get_max_position(
+            db, folder.parent_id, owner_id=owner_id
+        )
         new_position = min(payload.position, max_position)
         await crud_folder.shift_positions_for_move(
-            db, folder.parent_id, folder.position, new_position
+            db, folder.parent_id, folder.position, new_position, owner_id=owner_id
         )
         folder.position = new_position
 
@@ -142,7 +162,9 @@ async def update_folder(
     return await crud_folder.update_folder(db, folder)
 
 
-async def delete_folder_by_id(folder_id: str, db_session: AsyncSession) -> None:
+async def delete_folder_by_id(
+    folder_id: str, db_session: AsyncSession, owner_id: str = "test-user"
+) -> None:
     """
     Deletes a folder by its ID.
 
@@ -158,7 +180,9 @@ async def delete_folder_by_id(folder_id: str, db_session: AsyncSession) -> None:
         HTTPException: If folder not found
     """
     # Get the folder to ensure it exists
-    folder = await crud_folder.get_folders(db_session, id=folder_id, first=True)
+    folder = await crud_folder.get_folders(
+        db_session, owner_id=owner_id, id=folder_id, first=True
+    )
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
@@ -168,7 +192,7 @@ async def delete_folder_by_id(folder_id: str, db_session: AsyncSession) -> None:
 
     # Move child folders up one level
     children = await crud_folder.get_folders(
-        db_session, parent_id=folder_id, limit=None
+        db_session, owner_id=owner_id, parent_id=folder_id, limit=None
     )
     for child in children:
         child.parent_id = folder.parent_id

@@ -8,9 +8,10 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     Integer,
-    ForeignKey,
+    ForeignKeyConstraint,
     JSON,
     Index,
+    and_,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.mutable import MutableList
@@ -26,18 +27,24 @@ if TYPE_CHECKING:
 class Video(Base):
     __tablename__ = "videos"
     __table_args__ = (
-        # Index for filtering favorited videos
         Index("ix_video_is_favorited", "is_favorited"),
-        # Index for filtering watched videos
         Index("ix_video_is_watched", "is_watched"),
-        # Index for filtering shorts
         Index("ix_video_is_short", "is_short"),
-        # Compound index for common query pattern: filter by channel and sort by published date
-        Index("ix_video_channel_published", "channel_id", "published_at"),
+        Index("ix_video_channel_published", "owner_id", "channel_id", "published_at"),
+        ForeignKeyConstraint(
+            ["owner_id", "channel_id"],
+            ["channels.owner_id", "channels.id"],
+            ondelete="CASCADE",
+        ),
     )
 
+    owner_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, nullable=False, index=True, default="test-user"
+    )
     id: Mapped[str] = mapped_column(
-        String(16), primary_key=True, comment="YouTube's Video ID (e.g., dQw4w9WgXcQ)"
+        String(16),
+        primary_key=True,
+        comment="YouTube's Video ID (e.g., dQw4w9WgXcQ)",
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -67,20 +74,26 @@ class Video(Base):
         MutableList.as_mutable(JSON), default=list, nullable=False, server_default="[]"
     )
 
-    channel_id: Mapped[str] = mapped_column(
-        ForeignKey("channels.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    channel_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
 
     channel: Mapped["Channel"] = relationship(back_populates="videos")
 
     # Many-to-many relationship with Tags (separate from yt_tags which are YouTube metadata)
     tags: Mapped[list["Tag"]] = relationship(
-        secondary=video_tags, back_populates="videos", lazy="selectin"
+        secondary=video_tags,
+        primaryjoin="and_(Video.owner_id == video_tags.c.owner_id, Video.id == video_tags.c.video_id)",
+        secondaryjoin="and_(Tag.owner_id == video_tags.c.owner_id, Tag.id == video_tags.c.tag_id)",
+        back_populates="videos",
+        lazy="selectin",
     )
 
     # Many-to-many relationship with Playlists
     playlists: Mapped[list["Playlist"]] = relationship(
-        secondary=playlist_videos, back_populates="videos", lazy="selectin"
+        secondary=playlist_videos,
+        primaryjoin="and_(Video.owner_id == playlist_videos.c.owner_id, Video.id == playlist_videos.c.video_id)",
+        secondaryjoin="and_(Playlist.owner_id == playlist_videos.c.owner_id, Playlist.id == playlist_videos.c.playlist_id)",
+        back_populates="videos",
+        lazy="selectin",
     )
 
     def __repr__(self) -> str:

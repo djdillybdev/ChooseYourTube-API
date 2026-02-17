@@ -12,6 +12,7 @@ from .crud_base import (
 async def get_tags(
     db: AsyncSession,
     *,
+    owner_id: str | None = None,
     id: str | list[str] | None = None,
     name: str | None = None,
     # Pagination
@@ -48,6 +49,8 @@ async def get_tags(
     _validate_order_by_field(Tag, order_by)
 
     filters = {}
+    if owner_id is not None:
+        filters["owner_id"] = owner_id
     if id is not None:
         filters["id"] = id
     if name is not None:
@@ -69,6 +72,7 @@ async def get_tags(
 async def count_tags(
     db: AsyncSession,
     *,
+    owner_id: str | None = None,
     id: str | list[str] | None = None,
     name: str | None = None,
 ) -> int:
@@ -84,6 +88,8 @@ async def count_tags(
         Total count of tags matching the filters
     """
     filters = {}
+    if owner_id is not None:
+        filters["owner_id"] = owner_id
     if id is not None:
         filters["id"] = id
     if name is not None:
@@ -123,7 +129,9 @@ async def create_tag(db_session: AsyncSession, tag_to_create: Tag) -> Tag:
     return tag_to_create
 
 
-async def get_or_create_tag(db_session: AsyncSession, name: str) -> Tag:
+async def get_or_create_tag(
+    db_session: AsyncSession, name: str, owner_id: str = "test-user"
+) -> Tag:
     """
     Get an existing tag by name, or create it if it doesn't exist.
     This is idempotent - calling it multiple times with the same name returns the same tag.
@@ -136,7 +144,7 @@ async def get_or_create_tag(db_session: AsyncSession, name: str) -> Tag:
         The existing or newly created Tag instance
     """
     # Try to get existing tag (name will be normalized to lowercase in get_tags)
-    existing_tag = await get_tags(db_session, name=name, first=True)
+    existing_tag = await get_tags(db_session, owner_id=owner_id, name=name, first=True)
 
     if existing_tag:
         return existing_tag
@@ -144,7 +152,7 @@ async def get_or_create_tag(db_session: AsyncSession, name: str) -> Tag:
     # Create new tag if it doesn't exist
     import uuid
 
-    new_tag = Tag(id=str(uuid.uuid4()), name=name)
+    new_tag = Tag(id=str(uuid.uuid4()), owner_id=owner_id, name=name)
     return await create_tag(db_session, new_tag)
 
 
@@ -164,7 +172,7 @@ async def delete_tag(db_session: AsyncSession, tag: Tag) -> Tag:
     return tag
 
 
-async def delete_all_tags(db_session: AsyncSession) -> int:
+async def delete_all_tags(db_session: AsyncSession, owner_id: str | None = None) -> int:
     """
     Deletes all tags from the database. Used primarily for testing.
 
@@ -174,6 +182,9 @@ async def delete_all_tags(db_session: AsyncSession) -> int:
     Returns:
         Number of tags deleted
     """
-    result = await db_session.execute(delete(Tag))
+    stmt = delete(Tag)
+    if owner_id is not None:
+        stmt = stmt.where(Tag.owner_id == owner_id)
+    result = await db_session.execute(stmt)
     await db_session.commit()
     return result.rowcount

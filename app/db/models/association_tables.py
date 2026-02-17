@@ -5,7 +5,15 @@ These tables are defined separately from the models to avoid circular import iss
 """
 
 from datetime import datetime, timezone
-from sqlalchemy import Table, Column, String, Integer, DateTime, ForeignKey
+from sqlalchemy import (
+    Table,
+    Column,
+    String,
+    Integer,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+)
 from ..base import Base
 
 # Many-to-many association table for Channel ↔ Tag
@@ -13,9 +21,16 @@ channel_tags = Table(
     "channel_tags",
     Base.metadata,
     Column(
+        "owner_id",
+        String(36),
+        primary_key=True,
+        nullable=False,
+        default="test-user",
+        server_default="test-user",
+    ),
+    Column(
         "channel_id",
         String(32),
-        ForeignKey("channels.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
@@ -29,6 +44,11 @@ channel_tags = Table(
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
+    ),
+    ForeignKeyConstraint(
+        ["owner_id", "channel_id"],
+        ["channels.owner_id", "channels.id"],
+        ondelete="CASCADE",
     ),
 )
 
@@ -37,9 +57,16 @@ video_tags = Table(
     "video_tags",
     Base.metadata,
     Column(
+        "owner_id",
+        String(36),
+        primary_key=True,
+        nullable=False,
+        default="test-user",
+        server_default="test-user",
+    ),
+    Column(
         "video_id",
         String(16),
-        ForeignKey("videos.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
@@ -54,12 +81,25 @@ video_tags = Table(
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     ),
+    ForeignKeyConstraint(
+        ["owner_id", "video_id"],
+        ["videos.owner_id", "videos.id"],
+        ondelete="CASCADE",
+    ),
 )
 
 # Many-to-many association table for Playlist ↔ Video
 playlist_videos = Table(
     "playlist_videos",
     Base.metadata,
+    Column(
+        "owner_id",
+        String(36),
+        primary_key=True,
+        nullable=False,
+        default="test-user",
+        server_default="test-user",
+    ),
     Column(
         "playlist_id",
         String(36),
@@ -69,7 +109,6 @@ playlist_videos = Table(
     Column(
         "video_id",
         String(16),
-        ForeignKey("videos.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
@@ -83,5 +122,10 @@ playlist_videos = Table(
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
+    ),
+    ForeignKeyConstraint(
+        ["owner_id", "video_id"],
+        ["videos.owner_id", "videos.id"],
+        ondelete="CASCADE",
     ),
 )

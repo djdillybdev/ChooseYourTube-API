@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, Query, HTTPException
-from ..dependencies import DBSessionDep, YouTubeAPIDep, ArqDep
+from ..dependencies import DBSessionDep, YouTubeAPIDep, ArqDep, CurrentUserDep
 from ..schemas.channel import ChannelCreate, ChannelOut, ChannelUpdate
 from ..schemas.base import PaginatedResponse
 from ..services import channel_service
@@ -10,6 +10,7 @@ router = APIRouter(prefix="/channels", tags=["Channels"])
 @router.get("/", response_model=PaginatedResponse[ChannelOut])
 async def list_channels(
     db_session: DBSessionDep,
+    user: CurrentUserDep,
     is_favorited: bool | None = Query(None, description="Filter by favorited status"),
     folder_id: str | None = Query(
         None, description="Filter by folder ID (use 0 for root/no folder)"
@@ -31,6 +32,7 @@ async def list_channels(
     - offset: Number of items to skip
     """
     return await channel_service.get_all_channels(
+        owner_id=str(user.id),
         db_session=db_session,
         is_favorited=is_favorited,
         folder_id=folder_id,
@@ -41,11 +43,11 @@ async def list_channels(
 
 
 @router.get("/{channel_id}", response_model=ChannelOut)
-async def get_channel_by_id(channel_id: str, db_session: DBSessionDep):
+async def get_channel_by_id(channel_id: str, db_session: DBSessionDep, user: CurrentUserDep):
     """
     Retrieves a single channel by its YouTube Channel ID.
     """
-    return await channel_service.get_channel_by_id(channel_id, db_session)
+    return await channel_service.get_channel_by_id(channel_id, db_session, owner_id=str(user.id))
 
 
 @router.post("/", response_model=ChannelOut, status_code=status.HTTP_201_CREATED)
@@ -54,6 +56,7 @@ async def create_channel(
     db_session: DBSessionDep,
     youtube_client: YouTubeAPIDep,
     redis: ArqDep,
+    user: CurrentUserDep,
 ):
     """
     Creates a new YouTube channel in the application.
@@ -61,11 +64,15 @@ async def create_channel(
     - Stores the channel information in the database.
     """
     new_channel = await channel_service.create_channel(
-        channel_data=channel_data, db_session=db_session, youtube_client=youtube_client
+        channel_data=channel_data,
+        db_session=db_session,
+        youtube_client=youtube_client,
+        owner_id=str(user.id),
     )
 
     await redis.enqueue_job(
         "fetch_and_store_all_channel_videos_task",
+        owner_id=str(user.id),
         channel_id=new_channel.id,
     )
 
@@ -74,35 +81,36 @@ async def create_channel(
 
 @router.patch("/{channel_id}", response_model=ChannelOut)
 async def update_channel(
-    channel_id: str, payload: ChannelUpdate, db_session: DBSessionDep
+    channel_id: str, payload: ChannelUpdate, db_session: DBSessionDep, user: CurrentUserDep
 ):
-    return await channel_service.update_channel(channel_id, payload, db_session)
+    return await channel_service.update_channel(channel_id, payload, db_session, owner_id=str(user.id))
 
 
 @router.post("/{channel_id}/refresh", response_model=ChannelOut)
 async def refresh_channel(
-    channel_id: str, db_session: DBSessionDep, youtube_client: YouTubeAPIDep
+    channel_id: str, db_session: DBSessionDep, youtube_client: YouTubeAPIDep, user: CurrentUserDep
 ):
     """
     Refresh the given YouTube channel to add and update the first 50 videos in its uploads playlist
     """
     return await channel_service.refresh_channel_by_id(
-        channel_id, db_session, youtube_client
+        channel_id, db_session, youtube_client, owner_id=str(user.id)
     )
 
 
 @router.delete("/{channel_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_channel(channel_id: str, db_session: DBSessionDep):
+async def delete_channel(channel_id: str, db_session: DBSessionDep, user: CurrentUserDep):
     """
     Deletes a single channel by its YouTube Channel ID.
     All associated videos will also be deleted.
     """
-    await channel_service.delete_channel_by_id(channel_id, db_session)
+    await channel_service.delete_channel_by_id(channel_id, db_session, owner_id=str(user.id))
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_all_channels(
     db_session: DBSessionDep,
+    user: CurrentUserDep,
     confirm: str = Query(
         ...,
         description="Must be exactly 'DELETE_ALL_CHANNELS' to confirm this destructive operation",
@@ -120,4 +128,4 @@ async def delete_all_channels(
             detail="Deletion not confirmed. Must provide ?confirm=DELETE_ALL_CHANNELS",
         )
 
-    await channel_service.delete_all_channels(db_session)
+    await channel_service.delete_all_channels(db_session, owner_id=str(user.id))

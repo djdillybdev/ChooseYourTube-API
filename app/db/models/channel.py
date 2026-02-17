@@ -2,7 +2,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship, column_property
-from sqlalchemy import DateTime, ForeignKey, Text, String, Boolean, select, func
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    Text,
+    String,
+    Boolean,
+    select,
+    func,
+    UniqueConstraint,
+    and_,
+)
 from datetime import datetime, timezone
 from ..base import Base
 from .association_tables import channel_tags
@@ -15,16 +25,20 @@ if TYPE_CHECKING:
 
 class Channel(Base):
     __tablename__ = "channels"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "handle", name="uq_channel_owner_handle"),
+    )
 
+    owner_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, nullable=False, index=True, default="test-user"
+    )
     id: Mapped[str] = mapped_column(
         String(32),
         primary_key=True,
         comment="YouTube's Channel ID (e.g., UC_x5XG1OV2P6uZZ5FSM9Ttw)",
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    handle: Mapped[str] = mapped_column(
-        String(128), nullable=True, unique=True, index=True
-    )
+    handle: Mapped[str] = mapped_column(String(128), nullable=True, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     thumbnail_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
@@ -46,9 +60,7 @@ class Channel(Base):
     )
 
     # Foreign Key to Folder
-    folder_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("folders.id")
-    )
+    folder_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("folders.id"))
 
     # Relationship to Folder (One-to-Many)
     # A Channel belongs to one Folder.
@@ -60,7 +72,11 @@ class Channel(Base):
 
     # Many-to-many relationship with Tags
     tags: Mapped[list["Tag"]] = relationship(
-        secondary=channel_tags, back_populates="channels", lazy="selectin"
+        secondary=channel_tags,
+        primaryjoin="and_(Channel.owner_id == channel_tags.c.owner_id, Channel.id == channel_tags.c.channel_id)",
+        secondaryjoin="and_(Tag.owner_id == channel_tags.c.owner_id, Tag.id == channel_tags.c.tag_id)",
+        back_populates="channels",
+        lazy="selectin",
     )
 
     def __repr__(self) -> str:
@@ -69,7 +85,7 @@ class Channel(Base):
 
 Channel.total_videos = column_property(
     select(func.count(Video.id))
-    .where(Video.channel_id == Channel.id)
+    .where((Video.channel_id == Channel.id) & (Video.owner_id == Channel.owner_id))
     .correlate_except(Video)
     .scalar_subquery()
 )
