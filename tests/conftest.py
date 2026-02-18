@@ -24,6 +24,7 @@ os.environ.setdefault(
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("API_ORIGIN", "http://localhost:3000")
 os.environ.setdefault("YOUTUBE_API_KEY", "test_api_key_for_testing")
+os.environ.setdefault("ENABLE_STARTUP_SCHEMA_CHECK", "false")
 
 from app.db.base import Base  # noqa: E402
 from app.main import app  # noqa: E402

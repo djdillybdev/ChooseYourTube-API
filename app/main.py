@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import auth_backend, fastapi_users
 from app.auth.schemas import UserCreate, UserRead, UserUpdate
+from app.db.schema_guard import assert_required_playlist_schema
+from app.db.session import sessionmanager
 from .core.config import settings
 from .routers import channels, videos, folders, tags, playlists, health
 
@@ -62,6 +64,19 @@ app.include_router(
     prefix="/users",
     tags=["users"],
 )
+
+
+async def check_database_schema_on_startup() -> None:
+    if not settings.enable_startup_schema_check:
+        return
+
+    async with sessionmanager.session() as db_session:
+        await assert_required_playlist_schema(db_session)
+
+
+@app.on_event("startup")
+async def _startup_schema_check() -> None:
+    await check_database_schema_on_startup()
 
 
 @app.get("/")

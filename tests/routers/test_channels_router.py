@@ -112,15 +112,13 @@ class TestChannelsRouter:
         assert data["id"] == "UC_new_channel"
         assert data["handle"] == "newchannel"  # @ stripped
 
-        # Verify both background jobs were enqueued
-        assert mock_arq_redis.enqueue_job.call_count == 2
-        calls = mock_arq_redis.enqueue_job.call_args_list
-        assert calls[0].args[0] == "fetch_and_store_all_channel_videos_task"
-        assert calls[0].kwargs["owner_id"] == "test-user"
-        assert calls[0].kwargs["channel_id"] == "UC_new_channel"
-        assert calls[1].args[0] == "sync_channel_playlists_task"
-        assert calls[1].kwargs["owner_id"] == "test-user"
-        assert calls[1].kwargs["channel_id"] == "UC_new_channel"
+        # Verify only initial video fetch is enqueued from the route.
+        # Playlist sync is chained by the worker task after ingestion completes.
+        mock_arq_redis.enqueue_job.assert_called_once_with(
+            "fetch_and_store_all_channel_videos_task",
+            owner_id="test-user",
+            channel_id="UC_new_channel",
+        )
 
     async def test_create_channel_accepts_channel_url(
         self, test_client, mock_youtube_api, mock_arq_redis

@@ -365,6 +365,23 @@ class TestSetPlaylistVideos:
 
         assert detail.current_position is None
 
+    async def test_deduplicates_ids_and_resets_position_out_of_bounds(
+        self, db_session, sample_playlist_with_videos
+    ):
+        """Should dedupe IDs before applying bounds logic to current_position."""
+        sample_playlist_with_videos.current_position = 2
+        db_session.add(sample_playlist_with_videos)
+        await db_session.commit()
+
+        payload = PlaylistSetVideos(video_ids=["SPV001", "SPV002", "SPV001"])
+
+        detail = await set_playlist_videos(
+            sample_playlist_with_videos.id, payload, db_session
+        )
+
+        assert detail.video_ids == ["SPV001", "SPV002"]
+        assert detail.current_position is None
+
 
 @pytest.mark.asyncio
 class TestAddVideoToPlaylist:

@@ -106,6 +106,11 @@ class TestFetchAndStoreAllChannelVideosTask:
 
         videos = await get_videos(db_session, channel_id=sample_channel.id)
         assert len(videos) == 2
+        mock_ctx["redis"].enqueue_job.assert_called_once_with(
+            "sync_channel_playlists_task",
+            owner_id="test-user",
+            channel_id=sample_channel.id,
+        )
 
     async def test_fetch_all_videos_channel_not_found(self, db_session, mock_ctx):
         """Test task exits gracefully when channel doesn't exist."""
@@ -124,6 +129,7 @@ class TestFetchAndStoreAllChannelVideosTask:
 
         # Verify no API calls were made
         mock_youtube_api.playlist_items_list_async.assert_not_called()
+        mock_ctx["redis"].enqueue_job.assert_not_called()
 
     async def test_fetch_all_videos_pagination_multiple_pages(
         self, db_session, sample_channel, mock_ctx, mock_youtube_api
@@ -263,6 +269,11 @@ class TestFetchAndStoreAllChannelVideosTask:
 
         # Verify videos_list was NOT called (no video IDs)
         mock_youtube_api.videos_list_async.assert_not_called()
+        mock_ctx["redis"].enqueue_job.assert_called_once_with(
+            "sync_channel_playlists_task",
+            owner_id="test-user",
+            channel_id=sample_channel.id,
+        )
 
 
 @pytest.mark.asyncio

@@ -480,6 +480,27 @@ class TestSetPlaylistVideos:
         result_ids = await get_playlist_video_ids(db_session, sample_playlist.id)
         assert result_ids == video_ids
 
+    async def test_deduplicates_duplicate_ids_keeping_first_occurrence(
+        self, db_session, sample_playlist, sample_videos
+    ):
+        """Should store each video at most once, preserving first-seen order."""
+        video_ids = [
+            sample_videos[0].id,
+            sample_videos[1].id,
+            sample_videos[0].id,
+            sample_videos[2].id,
+            sample_videos[1].id,
+        ]
+
+        await set_playlist_videos(db_session, sample_playlist.id, video_ids)
+
+        result_ids = await get_playlist_video_ids(db_session, sample_playlist.id)
+        assert result_ids == [
+            sample_videos[0].id,
+            sample_videos[1].id,
+            sample_videos[2].id,
+        ]
+
 
 @pytest.mark.asyncio
 class TestAddVideoToPlaylist:

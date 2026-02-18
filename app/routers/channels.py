@@ -80,11 +80,6 @@ async def create_channel(
         owner_id=str(user.id),
         channel_id=new_channel.id,
     )
-    await redis.enqueue_job(
-        "sync_channel_playlists_task",
-        owner_id=str(user.id),
-        channel_id=new_channel.id,
-    )
 
     return new_channel
 

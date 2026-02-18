@@ -32,6 +32,17 @@ def _assert_playlist_is_mutable(playlist: Playlist) -> None:
         )
 
 
+def _dedupe_video_ids_keep_first(video_ids: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_ids: list[str] = []
+    for vid in video_ids:
+        if vid in seen:
+            continue
+        seen.add(vid)
+        unique_ids.append(vid)
+    return unique_ids
+
+
 async def get_all_playlists(
     db_session: AsyncSession,
     owner_id: str = "test-user",
@@ -158,14 +169,15 @@ async def set_playlist_videos(
 ) -> PlaylistDetailOut:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
     _assert_playlist_is_mutable(playlist)
+    unique_video_ids = _dedupe_video_ids_keep_first(payload.video_ids)
 
     # Validate all video IDs exist
-    if payload.video_ids:
+    if unique_video_ids:
         existing_videos = await get_videos(
-            db_session, owner_id=owner_id, id=payload.video_ids
+            db_session, owner_id=owner_id, id=unique_video_ids
         )
         found_ids = {v.id for v in existing_videos}
-        missing = set(payload.video_ids) - found_ids
+        missing = set(unique_video_ids) - found_ids
         if missing:
             raise HTTPException(
                 status_code=400,
@@ -173,14 +185,14 @@ async def set_playlist_videos(
             )
 
     await crud_playlist.set_playlist_videos(
-        db_session, playlist_id, payload.video_ids, owner_id=owner_id
+        db_session, playlist_id, unique_video_ids, owner_id=owner_id
     )
 
     # Reset current_position if playlist was cleared or position is now out of bounds
-    if not payload.video_ids:
+    if not unique_video_ids:
         playlist.current_position = None
     elif playlist.current_position is not None and playlist.current_position >= len(
-        payload.video_ids
+        unique_video_ids
     ):
         playlist.current_position = None
 

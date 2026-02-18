@@ -1,6 +1,6 @@
 """add channel playlist source fields
 
-Revision ID: 20260218_add_channel_playlist_source_fields
+Revision ID: 20260218_channel_playlist_src
 Revises: 100843d1b5f2
 Create Date: 2026-02-18
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "20260218_add_channel_playlist_source_fields"
+revision: str = "20260218_channel_playlist_src"
 down_revision: Union[str, Sequence[str], None] = "100843d1b5f2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

@@ -230,3 +230,59 @@ class TestSyncChannelPlaylists:
         assert visible.total == 1
         assert visible.items[0].source_youtube_playlist_id == "PL_ACTIVE"
         assert all_items.total == 2
+
+    async def test_sync_deduplicates_duplicate_video_ids(
+        self, db_session, sample_channel, sample_channel_videos
+    ):
+        youtube_client = MagicMock()
+        youtube_client.playlists_list_async = AsyncMock(
+            return_value={
+                "items": [
+                    {
+                        "id": "PL_KEEP",
+                        "snippet": {
+                            "title": "Keep Playlist",
+                            "description": "desc",
+                            "thumbnails": {},
+                        },
+                    }
+                ]
+            }
+        )
+        youtube_client.playlist_items_list_async = AsyncMock(
+            return_value={
+                "items": [
+                    {
+                        "snippet": {"videoOwnerChannelId": sample_channel.id},
+                        "contentDetails": {"videoId": "sync_v1"},
+                    },
+                    {
+                        "snippet": {"videoOwnerChannelId": sample_channel.id},
+                        "contentDetails": {"videoId": "sync_v2"},
+                    },
+                    {
+                        "snippet": {"videoOwnerChannelId": sample_channel.id},
+                        "contentDetails": {"videoId": "sync_v1"},
+                    },
+                ]
+            }
+        )
+
+        await sync_channel_playlists(
+            channel_id=sample_channel.id,
+            db_session=db_session,
+            youtube_client=youtube_client,
+        )
+
+        playlists = await get_channel_playlists(
+            channel_id=sample_channel.id,
+            db_session=db_session,
+            owner_id="test-user",
+            include_inactive=True,
+        )
+        assert playlists.total == 1
+
+        video_ids = await get_playlist_video_ids(
+            db_session, playlists.items[0].id, owner_id="test-user"
+        )
+        assert video_ids == ["sync_v1", "sync_v2"]

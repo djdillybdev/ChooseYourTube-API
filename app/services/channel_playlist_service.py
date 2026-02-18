@@ -22,6 +22,17 @@ CHANNEL_PLAYLISTS_SYNC_MAX_ITEMS_PER_PLAYLIST = getattr(
 )
 
 
+def _dedupe_video_ids_keep_first(video_ids: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_ids: list[str] = []
+    for vid in video_ids:
+        if vid in seen:
+            continue
+        seen.add(vid)
+        unique_ids.append(vid)
+    return unique_ids
+
+
 def _get_best_thumbnail_url(thumbnails: dict) -> str | None:
     for quality in ["high", "medium", "default"]:
         if quality in thumbnails:
@@ -150,6 +161,7 @@ async def sync_channel_playlists(
             for video_id in channel_owned_ids
             if video_id in existing_same_channel_ids
         ]
+        filtered_video_ids = _dedupe_video_ids_keep_first(filtered_video_ids)
 
         if not filtered_video_ids:
             continue

@@ -11,6 +11,17 @@ from .crud_base import (
 )
 
 
+def _dedupe_video_ids_keep_first(video_ids: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_ids: list[str] = []
+    for vid in video_ids:
+        if vid in seen:
+            continue
+        seen.add(vid)
+        unique_ids.append(vid)
+    return unique_ids
+
+
 async def get_playlists(
     db: AsyncSession,
     *,
@@ -153,6 +164,8 @@ async def set_playlist_videos(
     owner_id: str = "test-user",
 ) -> None:
     """Replace all videos in a playlist with the given ordered list."""
+    unique_video_ids = _dedupe_video_ids_keep_first(video_ids)
+
     await db.execute(
         delete(playlist_videos).where(
             playlist_videos.c.owner_id == owner_id,
@@ -160,7 +173,7 @@ async def set_playlist_videos(
         )
     )
 
-    if video_ids:
+    if unique_video_ids:
         await db.execute(
             insert(playlist_videos),
             [
@@ -171,7 +184,7 @@ async def set_playlist_videos(
                     "position": idx,
                     "created_at": datetime.now(timezone.utc),
                 }
-                for idx, vid in enumerate(video_ids)
+                for idx, vid in enumerate(unique_video_ids)
             ],
         )
 

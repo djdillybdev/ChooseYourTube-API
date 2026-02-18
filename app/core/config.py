@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     SHORTS_MAX_SECONDS: int = 60
     echo_sql: bool = False
     debug_logs: bool = True
+    enable_startup_schema_check: bool = True
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     def get_redis_settings(self) -> RedisSettings:

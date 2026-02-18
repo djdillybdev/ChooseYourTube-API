@@ -149,11 +149,16 @@ async def fetch_and_store_all_channel_videos_task(
         video_ids = [v for v in video_ids if not (v in seen or seen.add(v))]
 
         if not video_ids:
-            print("No video IDs found. Exiting task.")
-            return
+            print("No video IDs found. Continuing to playlist sync.")
+        else:
+            await create_and_update_videos(
+                video_ids, channel_id, db_session, youtube_client, owner_id=owner_id
+            )
 
-        await create_and_update_videos(
-            video_ids, channel_id, db_session, youtube_client, owner_id=owner_id
+        await ctx["redis"].enqueue_job(
+            "sync_channel_playlists_task",
+            owner_id=owner_id,
+            channel_id=channel_id,
         )
 
 
