@@ -276,7 +276,7 @@ class TestRefreshChannelById:
 
             # Verify refresh was called
             mock_refresh.assert_called_once_with(
-                sample_channel.id, db_session, mock_youtube_api
+                sample_channel.id, db_session, mock_youtube_api, owner_id="test-user"
             )
 
             # Verify channel was returned

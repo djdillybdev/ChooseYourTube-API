@@ -104,6 +104,9 @@ class TestEnqueueChannelRefreshes:
 
             await enqueue_channel_refreshes(ctx)
 
+            mock_get_channels.assert_called_once()
+            assert mock_get_channels.call_args.kwargs.get("owner_id") is None
+
             # Verify no jobs were enqueued
             mock_redis.enqueue_job.assert_not_called()
 
@@ -112,6 +115,7 @@ class TestEnqueueChannelRefreshes:
         # Create a mock channel
         mock_channel = MagicMock()
         mock_channel.id = "UC_test_channel_1"
+        mock_channel.owner_id = "owner-1"
 
         with patch("app.worker.channel_service.get_all_channels") as mock_get_channels:
             mock_get_channels.return_value = [mock_channel]
@@ -124,6 +128,7 @@ class TestEnqueueChannelRefreshes:
             # Verify one job was enqueued with 0 delay (i * 3 where i=0)
             mock_redis.enqueue_job.assert_called_once_with(
                 "refresh_latest_channel_videos_task",
+                owner_id="owner-1",
                 channel_id="UC_test_channel_1",
                 _defer_by=timedelta(seconds=0),
             )
@@ -134,9 +139,9 @@ class TestEnqueueChannelRefreshes:
         """With multiple channels, jobs should be staggered by 3 seconds."""
         # Create mock channels
         mock_channels = [
-            MagicMock(id="UC_channel_1"),
-            MagicMock(id="UC_channel_2"),
-            MagicMock(id="UC_channel_3"),
+            MagicMock(id="UC_channel_1", owner_id="owner-1"),
+            MagicMock(id="UC_channel_2", owner_id="owner-2"),
+            MagicMock(id="UC_channel_3", owner_id="owner-3"),
         ]
 
         with patch("app.worker.channel_service.get_all_channels") as mock_get_channels:
@@ -160,6 +165,9 @@ class TestEnqueueChannelRefreshes:
             assert calls[0][1]["channel_id"] == "UC_channel_1"
             assert calls[1][1]["channel_id"] == "UC_channel_2"
             assert calls[2][1]["channel_id"] == "UC_channel_3"
+            assert calls[0][1]["owner_id"] == "owner-1"
+            assert calls[1][1]["owner_id"] == "owner-2"
+            assert calls[2][1]["owner_id"] == "owner-3"
 
     async def test_enqueue_channel_refreshes_uses_session(self, mock_sessionmanager):
         """Verify sessionmanager.session() context manager is used."""

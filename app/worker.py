@@ -24,15 +24,16 @@ async def enqueue_channel_refreshes(ctx):
     """
     Hourly cron. Enqueue one refresh job per channel with a unique job id.
     """
-    # Load channels for default owner context used by existing jobs/tests.
+    # Load channels across all owners so each user's channels are refreshed.
     async with sessionmanager.session() as db:
-        paginated = await channel_service.get_all_channels(db)
+        paginated = await channel_service.get_all_channels(db, owner_id=None)
         channels = paginated.items if hasattr(paginated, "items") else paginated
 
     # Stagger enqueues to smooth load
     for i, ch in enumerate(channels):
         await ctx["redis"].enqueue_job(
             "refresh_latest_channel_videos_task",
+            owner_id=ch.owner_id,
             channel_id=ch.id,
             _defer_by=timedelta(seconds=i * 3),  # 3s spacing between jobs
         )

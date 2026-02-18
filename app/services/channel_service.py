@@ -106,12 +106,9 @@ async def refresh_channel_by_id(
     if not channel:
         raise HTTPException(status_code=404, detail="Channel not found")
 
-    if owner_id == "test-user":
-        await refresh_latest_channel_videos(channel_id, db_session, youtube_client)
-    else:
-        await refresh_latest_channel_videos(
-            channel_id, db_session, youtube_client, owner_id=owner_id
-        )
+    await refresh_latest_channel_videos(
+        channel_id, db_session, youtube_client, owner_id=owner_id
+    )
 
     return channel
 
