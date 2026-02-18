@@ -145,7 +145,9 @@ class TestCreateChannel:
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = sample_youtube_channel_response
 
-            payload = ChannelCreate(handle="https://www.youtube.com/@testchannel/videos")
+            payload = ChannelCreate(
+                handle="https://www.youtube.com/@testchannel/videos"
+            )
 
             channel = await create_channel(payload, db_session, mock_youtube_api)
 

@@ -22,9 +22,7 @@ class Tag(Base):
     owner_id: Mapped[str] = mapped_column(
         String(36), nullable=False, index=True, default="test-user"
     )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, index=True
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

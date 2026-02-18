@@ -86,7 +86,9 @@ class TestCreateFolder:
         Note: SQLite doesn't enforce foreign key constraints by default.
         """
         nonexistent_parent_id = str(uuid.uuid4())
-        folder = Folder(id=str(uuid.uuid4()), name="Orphan Folder", parent_id=nonexistent_parent_id)
+        folder = Folder(
+            id=str(uuid.uuid4()), name="Orphan Folder", parent_id=nonexistent_parent_id
+        )
 
         # SQLite allows this, PostgreSQL would raise IntegrityError
         result = await create_folder(db_session, folder)

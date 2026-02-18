@@ -32,7 +32,10 @@ class TestWorkerSettings:
         assert (
             video_service.refresh_latest_channel_videos_task in WorkerSettings.functions
         )
-        assert channel_playlist_service.sync_channel_playlists_task in WorkerSettings.functions
+        assert (
+            channel_playlist_service.sync_channel_playlists_task
+            in WorkerSettings.functions
+        )
 
     def test_worker_settings_cron_jobs(self):
         """Verify WorkerSettings includes cron job configuration."""

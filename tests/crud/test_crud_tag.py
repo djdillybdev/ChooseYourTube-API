@@ -26,13 +26,17 @@ async def sample_tags(db_session):
 
     tags = [
         Tag(id=str(uuid.uuid4()), name="python", created_at=now - timedelta(days=1)),
-        Tag(id=str(uuid.uuid4()), name="javascript", created_at=now - timedelta(days=2)),
+        Tag(
+            id=str(uuid.uuid4()), name="javascript", created_at=now - timedelta(days=2)
+        ),
         Tag(id=str(uuid.uuid4()), name="tutorial", created_at=now - timedelta(days=3)),
         Tag(id=str(uuid.uuid4()), name="advanced", created_at=now - timedelta(days=4)),
         Tag(id=str(uuid.uuid4()), name="beginner", created_at=now - timedelta(days=5)),
         Tag(id=str(uuid.uuid4()), name="database", created_at=now - timedelta(days=6)),
         Tag(id=str(uuid.uuid4()), name="react", created_at=now - timedelta(days=7)),
-        Tag(id=str(uuid.uuid4()), name="algorithms", created_at=now - timedelta(days=8)),
+        Tag(
+            id=str(uuid.uuid4()), name="algorithms", created_at=now - timedelta(days=8)
+        ),
         Tag(id=str(uuid.uuid4()), name="webdev", created_at=now - timedelta(days=9)),
         Tag(id=str(uuid.uuid4()), name="ai", created_at=now - timedelta(days=10)),
     ]

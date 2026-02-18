@@ -56,7 +56,9 @@ async def get_tree(db: AsyncSession, owner_id: str = "test-user") -> list[Folder
 async def get_folder_by_id(
     folder_id: str, db: AsyncSession, owner_id: str = "test-user"
 ) -> Folder:
-    folder = await crud_folder.get_folders(db, owner_id=owner_id, id=folder_id, first=True)
+    folder = await crud_folder.get_folders(
+        db, owner_id=owner_id, id=folder_id, first=True
+    )
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
     return folder

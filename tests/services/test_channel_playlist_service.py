@@ -112,7 +112,9 @@ class TestSyncChannelPlaylists:
                         "snippet": {
                             "title": "Keep Playlist",
                             "description": "desc",
-                            "thumbnails": {"high": {"url": "https://example.com/pl.jpg"}},
+                            "thumbnails": {
+                                "high": {"url": "https://example.com/pl.jpg"}
+                            },
                         },
                     },
                     {

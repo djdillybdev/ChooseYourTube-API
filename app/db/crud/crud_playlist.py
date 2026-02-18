@@ -156,7 +156,7 @@ async def set_playlist_videos(
     await db.execute(
         delete(playlist_videos).where(
             playlist_videos.c.owner_id == owner_id,
-            playlist_videos.c.playlist_id == playlist_id
+            playlist_videos.c.playlist_id == playlist_id,
         )
     )
 
@@ -397,7 +397,9 @@ async def bulk_add_videos_to_playlist(
         await _compact_positions(db, playlist_id, owner_id=owner_id)
 
     if start_position is None:
-        start_position = (await get_max_position(db, playlist_id, owner_id=owner_id)) + 1
+        start_position = (
+            await get_max_position(db, playlist_id, owner_id=owner_id)
+        ) + 1
     else:
         # Shift existing items at >= start_position
         await db.execute(
@@ -442,7 +444,7 @@ async def clear_playlist_videos(
     await db.execute(
         delete(playlist_videos).where(
             playlist_videos.c.owner_id == owner_id,
-            playlist_videos.c.playlist_id == playlist_id
+            playlist_videos.c.playlist_id == playlist_id,
         )
     )
     await db.commit()

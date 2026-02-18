@@ -36,7 +36,9 @@ async def get_tag_by_id(tag_id: str, db_session: DBSessionDep, user: CurrentUser
 
 
 @router.post("/", response_model=TagOut, status_code=status.HTTP_201_CREATED)
-async def create_tag(payload: TagCreate, db_session: DBSessionDep, user: CurrentUserDep):
+async def create_tag(
+    payload: TagCreate, db_session: DBSessionDep, user: CurrentUserDep
+):
     """
     Create a new tag.
     Tag names are automatically normalized to lowercase.
@@ -81,7 +83,11 @@ async def get_videos_for_tag(
     Get all videos associated with a tag.
     """
     return await tag_service.get_videos_for_tag(
-        tag_id=tag_id, db_session=db_session, limit=limit, offset=offset, owner_id=str(user.id)
+        tag_id=tag_id,
+        db_session=db_session,
+        limit=limit,
+        offset=offset,
+        owner_id=str(user.id),
     )
 
 
@@ -97,5 +103,9 @@ async def get_channels_for_tag(
     Get all channels associated with a tag.
     """
     return await tag_service.get_channels_for_tag(
-        tag_id=tag_id, db_session=db_session, limit=limit, offset=offset, owner_id=str(user.id)
+        tag_id=tag_id,
+        db_session=db_session,
+        limit=limit,
+        offset=offset,
+        owner_id=str(user.id),
     )

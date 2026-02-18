@@ -8,7 +8,13 @@ from ..dependencies import DBSessionDep, CurrentUserDep
 from ..schemas.video import VideoOut, VideoUpdate
 from ..services import video_service
 
-VALID_ORDER_BY = {"published_at", "title", "duration_seconds", "created_at", "relevance"}
+VALID_ORDER_BY = {
+    "published_at",
+    "title",
+    "duration_seconds",
+    "created_at",
+    "relevance",
+}
 
 router = APIRouter(prefix="/videos", tags=["Videos"])
 
@@ -82,7 +88,9 @@ async def list_videos(
     parsed_channel_id = None
     if channel_id is not None:
         if "," in channel_id:
-            parsed_channel_id = [cid.strip() for cid in channel_id.split(",") if cid.strip()]
+            parsed_channel_id = [
+                cid.strip() for cid in channel_id.split(",") if cid.strip()
+            ]
             if not parsed_channel_id:
                 raise HTTPException(
                     status_code=400,
@@ -92,8 +100,14 @@ async def list_videos(
             parsed_channel_id = channel_id.strip()
 
     # Parse date strings to datetime objects
-    parsed_after = _parse_iso_date(published_after, "published_after") if published_after else None
-    parsed_before = _parse_iso_date(published_before, "published_before") if published_before else None
+    parsed_after = (
+        _parse_iso_date(published_after, "published_after") if published_after else None
+    )
+    parsed_before = (
+        _parse_iso_date(published_before, "published_before")
+        if published_before
+        else None
+    )
 
     return await video_service.get_all_videos(
         owner_id=str(user.id),
@@ -114,7 +128,9 @@ async def list_videos(
 
 
 @router.get("/{video_id}", response_model=VideoOut)
-async def get_video_by_id(video_id: str, db_session: DBSessionDep, user: CurrentUserDep):
+async def get_video_by_id(
+    video_id: str, db_session: DBSessionDep, user: CurrentUserDep
+):
     return await video_service.get_video_by_id(
         video_id=video_id, db_session=db_session, owner_id=str(user.id)
     )

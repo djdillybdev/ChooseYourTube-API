@@ -12,7 +12,9 @@ async def read_folder_tree(db_session: DBSessionDep, user: CurrentUserDep):
 
 
 @router.post("/", response_model=FolderOut, status_code=status.HTTP_201_CREATED)
-async def create_folder(payload: FolderCreate, db_session: DBSessionDep, user: CurrentUserDep):
+async def create_folder(
+    payload: FolderCreate, db_session: DBSessionDep, user: CurrentUserDep
+):
     f = await folder_service.create_folder(payload, db_session, owner_id=str(user.id))
     return FolderOut.model_validate(
         {
@@ -28,9 +30,14 @@ async def create_folder(payload: FolderCreate, db_session: DBSessionDep, user: C
 
 @router.patch("/{folder_id}", response_model=FolderOut)
 async def rename_or_move_folder(
-    folder_id: str, payload: FolderUpdate, db_session: DBSessionDep, user: CurrentUserDep
+    folder_id: str,
+    payload: FolderUpdate,
+    db_session: DBSessionDep,
+    user: CurrentUserDep,
 ):
-    f = await folder_service.update_folder(folder_id, payload, db_session, owner_id=str(user.id))
+    f = await folder_service.update_folder(
+        folder_id, payload, db_session, owner_id=str(user.id)
+    )
     return FolderOut.model_validate(
         {
             "id": f.id,
@@ -44,8 +51,12 @@ async def rename_or_move_folder(
 
 
 @router.get("/{folder_id}", response_model=FolderOut)
-async def read_folder_by_id(folder_id: str, db_session: DBSessionDep, user: CurrentUserDep):
-    f = await folder_service.get_folder_by_id(folder_id, db_session, owner_id=str(user.id))
+async def read_folder_by_id(
+    folder_id: str, db_session: DBSessionDep, user: CurrentUserDep
+):
+    f = await folder_service.get_folder_by_id(
+        folder_id, db_session, owner_id=str(user.id)
+    )
     return FolderOut.model_validate(
         {
             "id": f.id,
@@ -65,4 +76,6 @@ async def delete_folder(folder_id: str, db_session: DBSessionDep, user: CurrentU
     Channels in this folder will be moved to root.
     Child folders will be moved up one level.
     """
-    await folder_service.delete_folder_by_id(folder_id, db_session, owner_id=str(user.id))
+    await folder_service.delete_folder_by_id(
+        folder_id, db_session, owner_id=str(user.id)
+    )

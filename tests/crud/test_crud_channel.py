@@ -532,9 +532,7 @@ class TestGetChannelsListFiltering:
 
     async def test_mix_list_and_single_filters(self, db_session, sample_channels):
         """Should combine list and equality filters."""
-        results = await get_channels(
-            db_session, folder_id=[1, 2], is_favorited=True
-        )
+        results = await get_channels(db_session, folder_id=[1, 2], is_favorited=True)
 
         # folder 1: ch001 (fav), ch009 (fav)
         # folder 2: ch003 (fav)

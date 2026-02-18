@@ -444,7 +444,9 @@ class TestGetVideosListFiltering:
         with pytest.raises(ValueError, match="cannot be empty"):
             await get_videos(db_session, channel_id=[])
 
-    async def test_filter_by_multiple_fields_with_lists(self, db_session, sample_videos):
+    async def test_filter_by_multiple_fields_with_lists(
+        self, db_session, sample_videos
+    ):
         """Should combine list filters with other filters."""
         results = await get_videos(
             db_session, channel_id=["ch001", "ch002"], is_favorited=True

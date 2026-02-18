@@ -85,10 +85,10 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_constraint("fk_playlists_source_channel", "playlists", type_="foreignkey")
-    op.drop_constraint(
-        "uq_playlist_owner_source_playlist", "playlists", type_="unique"
+    op.drop_constraint("uq_playlist_owner_source_playlist", "playlists", type_="unique")
+    op.drop_index(
+        op.f("ix_playlists_source_youtube_playlist_id"), table_name="playlists"
     )
-    op.drop_index(op.f("ix_playlists_source_youtube_playlist_id"), table_name="playlists")
     op.drop_index(op.f("ix_playlists_source_channel_id"), table_name="playlists")
 
     op.drop_column("playlists", "source_last_synced_at")

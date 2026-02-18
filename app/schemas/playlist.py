@@ -16,7 +16,9 @@ class PlaylistCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=255, description="Playlist name")
     description: str | None = Field(None, description="Playlist description")
-    is_system: bool = Field(False, description="Whether this is a system playlist (e.g. queue)")
+    is_system: bool = Field(
+        False, description="Whether this is a system playlist (e.g. queue)"
+    )
 
 
 # --- Update Schema ---
@@ -38,14 +40,18 @@ class PlaylistAddVideo(BaseModel):
     """Schema for adding a video to a playlist."""
 
     video_id: str = Field(..., description="Video ID to add")
-    position: int | None = Field(None, ge=0, description="Position in playlist (appended if omitted)")
+    position: int | None = Field(
+        None, ge=0, description="Position in playlist (appended if omitted)"
+    )
 
 
 class PlaylistAddVideos(BaseModel):
     """Schema for bulk adding videos to a playlist."""
 
     video_ids: list[str] = Field(..., min_length=1, description="Video IDs to add")
-    position: int | None = Field(None, ge=0, description="Insert position (appended if omitted)")
+    position: int | None = Field(
+        None, ge=0, description="Insert position (appended if omitted)"
+    )
 
 
 class PlaylistMoveVideo(BaseModel):
@@ -58,7 +64,9 @@ class PlaylistMoveVideo(BaseModel):
 class PlaylistSetPosition(BaseModel):
     """Schema for setting the current playback position."""
 
-    current_position: int | None = Field(None, ge=0, description="Current position index, null to clear")
+    current_position: int | None = Field(
+        None, ge=0, description="Current position index, null to clear"
+    )
 
 
 class PlaylistSetVideos(BaseModel):

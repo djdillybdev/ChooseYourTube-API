@@ -327,7 +327,9 @@ class TestVideosRouter:
         assert len(data["items"]) == 1
         assert data["items"][0]["id"] == "search_vid_1"
 
-    async def test_list_videos_search_pagination_accurate(self, test_client, db_session):
+    async def test_list_videos_search_pagination_accurate(
+        self, test_client, db_session
+    ):
         """Test that total and has_more are accurate when using search + filters."""
         from app.db.models.channel import Channel
         from app.db.models.video import Video

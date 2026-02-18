@@ -27,17 +27,31 @@ async def sample_folders(db_session):
     folders = [
         # Root folders
         Folder(
-            id="f1", name="Programming", parent_id=None, created_at=now - timedelta(days=1)
+            id="f1",
+            name="Programming",
+            parent_id=None,
+            created_at=now - timedelta(days=1),
         ),
         Folder(
-            id="f2", name="Databases", parent_id=None, created_at=now - timedelta(days=2)
+            id="f2",
+            name="Databases",
+            parent_id=None,
+            created_at=now - timedelta(days=2),
         ),
-        Folder(id="f3", name="Design", parent_id=None, created_at=now - timedelta(days=3)),
+        Folder(
+            id="f3", name="Design", parent_id=None, created_at=now - timedelta(days=3)
+        ),
         # Children of Programming (id=f1)
-        Folder(id="f4", name="Frontend", parent_id="f1", created_at=now - timedelta(days=4)),
-        Folder(id="f5", name="Backend", parent_id="f1", created_at=now - timedelta(days=5)),
+        Folder(
+            id="f4", name="Frontend", parent_id="f1", created_at=now - timedelta(days=4)
+        ),
+        Folder(
+            id="f5", name="Backend", parent_id="f1", created_at=now - timedelta(days=5)
+        ),
         # Children of Frontend (id=f4)
-        Folder(id="f6", name="React", parent_id="f4", created_at=now - timedelta(days=6)),
+        Folder(
+            id="f6", name="React", parent_id="f4", created_at=now - timedelta(days=6)
+        ),
         Folder(id="f7", name="Vue", parent_id="f4", created_at=now - timedelta(days=7)),
         # Child of Databases (id=f2)
         Folder(id="f8", name="SQL", parent_id="f2", created_at=now - timedelta(days=8)),
@@ -330,7 +344,9 @@ class TestGetFoldersCombinedFilters:
 
     async def test_filter_by_name_and_parent_id(self, db_session, sample_folders):
         """Should combine name and parent_id filters."""
-        result = await get_folders(db_session, name="Frontend", parent_id="f1", first=True)
+        result = await get_folders(
+            db_session, name="Frontend", parent_id="f1", first=True
+        )
 
         assert result is not None
         assert result.name == "Frontend"

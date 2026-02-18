@@ -33,6 +33,7 @@ async def sample_channel(db_session):
 async def sample_tags(db_session):
     """Create sample tags for testing."""
     import uuid
+
     tag_names = ["python", "javascript", "tutorial", "advanced", "beginner"]
     tags = []
     for name in tag_names:

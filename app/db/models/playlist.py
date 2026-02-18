@@ -43,20 +43,22 @@ class Playlist(Base):
     owner_id: Mapped[str] = mapped_column(
         String(36), nullable=False, index=True, default="test-user"
     )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, index=True
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     thumbnail_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    is_system: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
+    is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    source_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="manual"
     )
-    source_type: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
-    source_channel_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    source_channel_id: Mapped[str | None] = mapped_column(
+        String(32), nullable=True, index=True
+    )
     source_youtube_playlist_id: Mapped[str | None] = mapped_column(
         String(48), nullable=True, index=True
     )
-    source_is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    source_is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True
+    )
     source_last_synced_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

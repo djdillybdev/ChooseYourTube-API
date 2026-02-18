@@ -328,7 +328,13 @@ async def get_videos(
         # PostgreSQL: use subquery to handle DISTINCT + ORDER BY rank
         rank_label = rank_expr.label("_rank")
         ranked_query, _ = _apply_extended_filters(
-            select(Video, rank_label), db, filters, tag_id, published_after, published_before, q
+            select(Video, rank_label),
+            db,
+            filters,
+            tag_id,
+            published_after,
+            published_before,
+            q,
         )
         # Use a subquery with GROUP BY Video.id to deduplicate
         # instead of DISTINCT, since we need to order by _rank
@@ -353,7 +359,9 @@ async def get_videos(
     # Fall back to published_at for relevance on SQLite
     effective_order_by = "published_at" if order_by == RELEVANCE_ORDER_BY else order_by
     order_column = getattr(Video, effective_order_by)
-    query = _apply_video_ordering(query, order_column, effective_order_by, order_direction)
+    query = _apply_video_ordering(
+        query, order_column, effective_order_by, order_direction
+    )
 
     # Apply pagination
     if limit is not None:
@@ -445,7 +453,12 @@ async def count_videos(
     # Extended path: use COUNT(DISTINCT video.id) with same JOINs
     count_query, _ = _apply_extended_filters(
         select(func.count(func.distinct(Video.id))).select_from(Video),
-        db, filters, tag_id, published_after, published_before, q,
+        db,
+        filters,
+        tag_id,
+        published_after,
+        published_before,
+        q,
     )
     result = await db.execute(count_query)
     return result.scalar() or 0

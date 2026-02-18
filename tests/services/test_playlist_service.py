@@ -661,7 +661,9 @@ class TestShufflePlaylist:
 class TestReadOnlyChannelPlaylists:
     """Channel-sourced playlists should not allow structural mutation."""
 
-    async def test_update_playlist_forbidden(self, db_session, channel_sourced_playlist):
+    async def test_update_playlist_forbidden(
+        self, db_session, channel_sourced_playlist
+    ):
         with pytest.raises(HTTPException) as exc_info:
             await update_playlist(
                 channel_sourced_playlist.id,

@@ -120,7 +120,11 @@ async def shift_positions_for_insert(
 
     await db.execute(
         update(Folder)
-        .where(Folder.owner_id == owner_id, parent_filter, Folder.position >= start_position)
+        .where(
+            Folder.owner_id == owner_id,
+            parent_filter,
+            Folder.position >= start_position,
+        )
         .values(position=Folder.position + 1)
     )
 
@@ -139,7 +143,11 @@ async def shift_positions_after_removal(
 
     await db.execute(
         update(Folder)
-        .where(Folder.owner_id == owner_id, parent_filter, Folder.position > removed_position)
+        .where(
+            Folder.owner_id == owner_id,
+            parent_filter,
+            Folder.position > removed_position,
+        )
         .values(position=Folder.position - 1)
     )
 

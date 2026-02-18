@@ -44,11 +44,15 @@ async def list_channels(
 
 
 @router.get("/{channel_id}", response_model=ChannelOut)
-async def get_channel_by_id(channel_id: str, db_session: DBSessionDep, user: CurrentUserDep):
+async def get_channel_by_id(
+    channel_id: str, db_session: DBSessionDep, user: CurrentUserDep
+):
     """
     Retrieves a single channel by its YouTube Channel ID.
     """
-    return await channel_service.get_channel_by_id(channel_id, db_session, owner_id=str(user.id))
+    return await channel_service.get_channel_by_id(
+        channel_id, db_session, owner_id=str(user.id)
+    )
 
 
 @router.post("/", response_model=ChannelOut, status_code=status.HTTP_201_CREATED)
@@ -87,14 +91,22 @@ async def create_channel(
 
 @router.patch("/{channel_id}", response_model=ChannelOut)
 async def update_channel(
-    channel_id: str, payload: ChannelUpdate, db_session: DBSessionDep, user: CurrentUserDep
+    channel_id: str,
+    payload: ChannelUpdate,
+    db_session: DBSessionDep,
+    user: CurrentUserDep,
 ):
-    return await channel_service.update_channel(channel_id, payload, db_session, owner_id=str(user.id))
+    return await channel_service.update_channel(
+        channel_id, payload, db_session, owner_id=str(user.id)
+    )
 
 
 @router.post("/{channel_id}/refresh", response_model=ChannelOut)
 async def refresh_channel(
-    channel_id: str, db_session: DBSessionDep, youtube_client: YouTubeAPIDep, user: CurrentUserDep
+    channel_id: str,
+    db_session: DBSessionDep,
+    youtube_client: YouTubeAPIDep,
+    user: CurrentUserDep,
 ):
     """
     Refresh the given YouTube channel to add and update the first 50 videos in its uploads playlist
@@ -104,12 +116,16 @@ async def refresh_channel(
     )
 
 
-@router.get("/{channel_id}/playlists", response_model=PaginatedResponse[ChannelPlaylistOut])
+@router.get(
+    "/{channel_id}/playlists", response_model=PaginatedResponse[ChannelPlaylistOut]
+)
 async def list_channel_playlists(
     channel_id: str,
     db_session: DBSessionDep,
     user: CurrentUserDep,
-    include_inactive: bool = Query(False, description="Include inactive synced playlists"),
+    include_inactive: bool = Query(
+        False, description="Include inactive synced playlists"
+    ),
     limit: int = Query(50, ge=1, le=200, description="Number of items per page"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
 ):
@@ -130,7 +146,9 @@ async def refresh_channel_playlists(
     redis: ArqDep,
     user: CurrentUserDep,
 ):
-    await channel_service.get_channel_by_id(channel_id, db_session, owner_id=str(user.id))
+    await channel_service.get_channel_by_id(
+        channel_id, db_session, owner_id=str(user.id)
+    )
     await redis.enqueue_job(
         "sync_channel_playlists_task",
         owner_id=str(user.id),
@@ -140,12 +158,16 @@ async def refresh_channel_playlists(
 
 
 @router.delete("/{channel_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_channel(channel_id: str, db_session: DBSessionDep, user: CurrentUserDep):
+async def delete_channel(
+    channel_id: str, db_session: DBSessionDep, user: CurrentUserDep
+):
     """
     Deletes a single channel by its YouTube Channel ID.
     All associated videos will also be deleted.
     """
-    await channel_service.delete_channel_by_id(channel_id, db_session, owner_id=str(user.id))
+    await channel_service.delete_channel_by_id(
+        channel_id, db_session, owner_id=str(user.id)
+    )
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)

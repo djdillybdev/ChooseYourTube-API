@@ -5,6 +5,7 @@ Revises: 04987b21232e
 Create Date: 2026-02-18 00:38:39.536615
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -13,8 +14,8 @@ import fastapi_users_db_sqlalchemy
 
 
 # revision identifiers, used by Alembic.
-revision: str = '100843d1b5f2'
-down_revision: Union[str, Sequence[str], None] = '04987b21232e'
+revision: str = "100843d1b5f2"
+down_revision: Union[str, Sequence[str], None] = "04987b21232e"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -27,7 +28,9 @@ def _drop_pk(table_name: str) -> None:
         op.drop_constraint(pk_name, table_name, type_="primary")
 
 
-def _drop_fk(table_name: str, constrained_columns: list[str], referred_table: str) -> None:
+def _drop_fk(
+    table_name: str, constrained_columns: list[str], referred_table: str
+) -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
     for fk in inspector.get_foreign_keys(table_name):
@@ -54,11 +57,15 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
 
-    op.add_column("channels", sa.Column("owner_id", sa.String(length=36), nullable=True))
+    op.add_column(
+        "channels", sa.Column("owner_id", sa.String(length=36), nullable=True)
+    )
     op.add_column("videos", sa.Column("owner_id", sa.String(length=36), nullable=True))
     op.add_column("folders", sa.Column("owner_id", sa.String(length=36), nullable=True))
     op.add_column("tags", sa.Column("owner_id", sa.String(length=36), nullable=True))
-    op.add_column("playlists", sa.Column("owner_id", sa.String(length=36), nullable=True))
+    op.add_column(
+        "playlists", sa.Column("owner_id", sa.String(length=36), nullable=True)
+    )
     op.add_column(
         "channel_tags",
         sa.Column(
@@ -136,8 +143,12 @@ def upgrade() -> None:
 
     op.create_primary_key("pk_channels", "channels", ["owner_id", "id"])
     op.create_primary_key("pk_videos", "videos", ["owner_id", "id"])
-    op.create_primary_key("pk_channel_tags", "channel_tags", ["owner_id", "channel_id", "tag_id"])
-    op.create_primary_key("pk_video_tags", "video_tags", ["owner_id", "video_id", "tag_id"])
+    op.create_primary_key(
+        "pk_channel_tags", "channel_tags", ["owner_id", "channel_id", "tag_id"]
+    )
+    op.create_primary_key(
+        "pk_video_tags", "video_tags", ["owner_id", "video_id", "tag_id"]
+    )
     op.create_primary_key(
         "pk_playlist_videos", "playlist_videos", ["owner_id", "playlist_id", "video_id"]
     )
@@ -177,10 +188,16 @@ def upgrade() -> None:
 
     op.drop_index(op.f("ix_channels_handle"), table_name="channels")
     op.create_index(op.f("ix_channels_handle"), "channels", ["handle"], unique=False)
-    op.create_index(op.f("ix_channels_owner_id"), "channels", ["owner_id"], unique=False)
-    op.create_unique_constraint("uq_channel_owner_handle", "channels", ["owner_id", "handle"])
+    op.create_index(
+        op.f("ix_channels_owner_id"), "channels", ["owner_id"], unique=False
+    )
+    op.create_unique_constraint(
+        "uq_channel_owner_handle", "channels", ["owner_id", "handle"]
+    )
     op.create_index(op.f("ix_folders_owner_id"), "folders", ["owner_id"], unique=False)
-    op.create_index(op.f("ix_playlists_owner_id"), "playlists", ["owner_id"], unique=False)
+    op.create_index(
+        op.f("ix_playlists_owner_id"), "playlists", ["owner_id"], unique=False
+    )
     op.drop_index(op.f("ix_tags_name"), table_name="tags")
     op.create_index(op.f("ix_tags_name"), "tags", ["name"], unique=False)
     op.create_index(op.f("ix_tags_owner_id"), "tags", ["owner_id"], unique=False)
@@ -221,7 +238,9 @@ def downgrade() -> None:
     op.create_primary_key("videos_pkey", "videos", ["id"])
     op.create_primary_key("pk_channel_tags", "channel_tags", ["channel_id", "tag_id"])
     op.create_primary_key("pk_video_tags", "video_tags", ["video_id", "tag_id"])
-    op.create_primary_key("playlist_videos_pkey", "playlist_videos", ["playlist_id", "video_id"])
+    op.create_primary_key(
+        "playlist_videos_pkey", "playlist_videos", ["playlist_id", "video_id"]
+    )
 
     op.create_foreign_key(
         "videos_channel_id_fkey",
@@ -260,7 +279,12 @@ def downgrade() -> None:
     op.create_index(op.f("ix_channels_handle"), "channels", ["handle"], unique=True)
     op.drop_index(op.f("ix_tags_name"), table_name="tags")
     op.create_index(op.f("ix_tags_name"), "tags", ["name"], unique=True)
-    op.create_index(op.f("ix_video_channel_published"), "videos", ["channel_id", "published_at"], unique=False)
+    op.create_index(
+        op.f("ix_video_channel_published"),
+        "videos",
+        ["channel_id", "published_at"],
+        unique=False,
+    )
 
     op.drop_column("playlist_videos", "owner_id")
     op.drop_column("video_tags", "owner_id")

@@ -233,7 +233,9 @@ async def delete_channel_by_id(
     Deletes a channel by its ID. Verifies it exists first.
     """
     # First, get the channel to ensure it exists (this also handles the 404 case)
-    channel_to_delete = await get_channel_by_id(channel_id, db_session, owner_id=owner_id)
+    channel_to_delete = await get_channel_by_id(
+        channel_id, db_session, owner_id=owner_id
+    )
 
     # Now, pass the object to the CRUD layer for deletion
     await crud_channel.delete_channel(db_session, channel_to_delete)

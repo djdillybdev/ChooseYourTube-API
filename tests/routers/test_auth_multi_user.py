@@ -36,7 +36,9 @@ def _register(client: TestClient, email: str, password: str = "testpassword123")
     return response
 
 
-def _login_token(client: TestClient, email: str, password: str = "testpassword123") -> str:
+def _login_token(
+    client: TestClient, email: str, password: str = "testpassword123"
+) -> str:
     response = client.post(
         "/auth/jwt/login",
         data={"username": email, "password": password},

@@ -120,7 +120,9 @@ async def delete_channel(db_session: AsyncSession, channel_to_delete: Channel) -
     await db_session.commit()
 
 
-async def delete_all_channels(db_session: AsyncSession, owner_id: str | None = None) -> int:
+async def delete_all_channels(
+    db_session: AsyncSession, owner_id: str | None = None
+) -> int:
     """
     Deletes all channels from the database and returns the count of deleted rows.
     This is a bulk operation.
