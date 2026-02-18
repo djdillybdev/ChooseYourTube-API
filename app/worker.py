@@ -5,7 +5,7 @@ from arq import cron
 
 from .core.config import settings
 from .db.session import sessionmanager
-from .services import channel_service, video_service
+from .services import channel_service, video_service, channel_playlist_service
 
 REDIS_SETTINGS = settings.get_redis_settings()
 
@@ -52,6 +52,7 @@ class WorkerSettings:
     functions = [
         video_service.fetch_and_store_all_channel_videos_task,
         video_service.refresh_latest_channel_videos_task,
+        channel_playlist_service.sync_channel_playlists_task,
     ]
 
     cron_jobs = [cron(enqueue_channel_refreshes, minute=0)]

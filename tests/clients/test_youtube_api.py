@@ -150,6 +150,23 @@ class TestYouTubeAPISyncMethods:
             mock_execute.assert_called_once()
             assert result == {"items": []}
 
+    def test_playlists_list_executes_request(self):
+        """Test that playlists_list executes the API request."""
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
+            mock_execute = MagicMock(return_value={"items": []})
+            mock_list = MagicMock(return_value=MagicMock(execute=mock_execute))
+            mock_playlists = MagicMock(return_value=MagicMock(list=mock_list))
+            mock_youtube = MagicMock(playlists=mock_playlists)
+            mock_build.return_value = mock_youtube
+
+            client = YouTubeAPI(api_key="test_key")
+            result = client.playlists_list(part="snippet", channelId="UC123")
+
+            mock_playlists.assert_called_once()
+            mock_list.assert_called_once_with(part="snippet", channelId="UC123")
+            mock_execute.assert_called_once()
+            assert result == {"items": []}
+
     def test_videos_list_executes_request(self):
         """Test that videos_list executes the API request."""
         with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
@@ -206,6 +223,24 @@ class TestYouTubeAPIAsyncMethods:
 
                 client = YouTubeAPI(api_key="test_key")
                 result = await client.playlist_items_list_async(part="snippet")
+
+                mock_to_thread.assert_called_once()
+                assert result == {"items": []}
+
+    async def test_playlists_list_async_wraps_in_thread(self):
+        """Test that playlists_list_async uses asyncio.to_thread."""
+        with patch("app.clients.youtube.googleapiclient.discovery.build") as mock_build:
+            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
+                mock_to_thread.return_value = {"items": []}
+
+                mock_execute = MagicMock()
+                mock_list = MagicMock(return_value=MagicMock(execute=mock_execute))
+                mock_playlists = MagicMock(return_value=MagicMock(list=mock_list))
+                mock_youtube = MagicMock(playlists=mock_playlists)
+                mock_build.return_value = mock_youtube
+
+                client = YouTubeAPI(api_key="test_key")
+                result = await client.playlists_list_async(part="snippet")
 
                 mock_to_thread.assert_called_once()
                 assert result == {"items": []}

@@ -18,6 +18,10 @@ async def get_playlists(
     id: str | list[str] | None = None,
     name: str | None = None,
     is_system: bool | None = None,
+    source_type: str | None = None,
+    source_channel_id: str | None = None,
+    source_youtube_playlist_id: str | None = None,
+    source_is_active: bool | None = None,
     limit: int | None = None,
     offset: int = 0,
     order_by: str = "name",
@@ -38,6 +42,14 @@ async def get_playlists(
         filters["name"] = name
     if is_system is not None:
         filters["is_system"] = is_system
+    if source_type is not None:
+        filters["source_type"] = source_type
+    if source_channel_id is not None:
+        filters["source_channel_id"] = source_channel_id
+    if source_youtube_playlist_id is not None:
+        filters["source_youtube_playlist_id"] = source_youtube_playlist_id
+    if source_is_active is not None:
+        filters["source_is_active"] = source_is_active
 
     return await base_get(
         db,
@@ -58,6 +70,10 @@ async def count_playlists(
     id: str | list[str] | None = None,
     name: str | None = None,
     is_system: bool | None = None,
+    source_type: str | None = None,
+    source_channel_id: str | None = None,
+    source_youtube_playlist_id: str | None = None,
+    source_is_active: bool | None = None,
 ) -> int:
     filters = {}
     if owner_id is not None:
@@ -68,6 +84,14 @@ async def count_playlists(
         filters["name"] = name
     if is_system is not None:
         filters["is_system"] = is_system
+    if source_type is not None:
+        filters["source_type"] = source_type
+    if source_channel_id is not None:
+        filters["source_channel_id"] = source_channel_id
+    if source_youtube_playlist_id is not None:
+        filters["source_youtube_playlist_id"] = source_youtube_playlist_id
+    if source_is_active is not None:
+        filters["source_is_active"] = source_is_active
 
     query = select(func.count()).select_from(Playlist)
     for field_name, value in filters.items():

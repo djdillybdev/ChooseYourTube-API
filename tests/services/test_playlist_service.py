@@ -122,6 +122,23 @@ async def sample_playlist_with_videos(db_session, sample_channel):
     return playlist
 
 
+@pytest_asyncio.fixture
+async def channel_sourced_playlist(db_session):
+    """Create a read-only channel-sourced playlist."""
+    playlist = Playlist(
+        id="PL_channel_1",
+        name="Channel Playlist",
+        is_system=True,
+        source_type="channel",
+        source_channel_id="CH_service_test",
+        source_youtube_playlist_id="PL_yt_channel_1",
+    )
+    db_session.add(playlist)
+    await db_session.commit()
+    await db_session.refresh(playlist)
+    return playlist
+
+
 @pytest.mark.asyncio
 class TestGetAllPlaylists:
     """Tests for get_all_playlists() service function."""
@@ -638,3 +655,30 @@ class TestShufflePlaylist:
         # Test single video
         detail = await shuffle_playlist(sample_playlist.id, db_session)
         assert detail.total_videos == 1
+
+
+@pytest.mark.asyncio
+class TestReadOnlyChannelPlaylists:
+    """Channel-sourced playlists should not allow structural mutation."""
+
+    async def test_update_playlist_forbidden(self, db_session, channel_sourced_playlist):
+        with pytest.raises(HTTPException) as exc_info:
+            await update_playlist(
+                channel_sourced_playlist.id,
+                PlaylistUpdate(name="nope"),
+                db_session,
+            )
+
+        assert exc_info.value.status_code == 403
+
+    async def test_set_playlist_videos_forbidden(
+        self, db_session, channel_sourced_playlist
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            await set_playlist_videos(
+                channel_sourced_playlist.id,
+                PlaylistSetVideos(video_ids=[]),
+                db_session,
+            )
+
+        assert exc_info.value.status_code == 403

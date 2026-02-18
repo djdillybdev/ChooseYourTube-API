@@ -16,7 +16,7 @@ from app.worker import (
     shutdown,
     enqueue_channel_refreshes,
 )
-from app.services import video_service
+from app.services import video_service, channel_playlist_service
 
 
 class TestWorkerSettings:
@@ -24,7 +24,7 @@ class TestWorkerSettings:
 
     def test_worker_settings_functions_list(self):
         """Verify WorkerSettings includes all task functions."""
-        assert len(WorkerSettings.functions) == 2
+        assert len(WorkerSettings.functions) == 3
         assert (
             video_service.fetch_and_store_all_channel_videos_task
             in WorkerSettings.functions
@@ -32,6 +32,7 @@ class TestWorkerSettings:
         assert (
             video_service.refresh_latest_channel_videos_task in WorkerSettings.functions
         )
+        assert channel_playlist_service.sync_channel_playlists_task in WorkerSettings.functions
 
     def test_worker_settings_cron_jobs(self):
         """Verify WorkerSettings includes cron job configuration."""

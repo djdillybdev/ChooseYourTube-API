@@ -44,6 +44,7 @@ def mock_youtube_api():
 
     # Mock async methods
     mock.channels_list_async = AsyncMock()
+    mock.playlists_list_async = AsyncMock()
     mock.playlist_items_list_async = AsyncMock()
     mock.videos_list_async = AsyncMock()
 

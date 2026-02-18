@@ -1,8 +1,9 @@
 from fastapi import APIRouter, status, Query, HTTPException
 from ..dependencies import DBSessionDep, YouTubeAPIDep, ArqDep, CurrentUserDep
 from ..schemas.channel import ChannelCreate, ChannelOut, ChannelUpdate
+from ..schemas.playlist import ChannelPlaylistOut
 from ..schemas.base import PaginatedResponse
-from ..services import channel_service
+from ..services import channel_service, channel_playlist_service
 
 router = APIRouter(prefix="/channels", tags=["Channels"])
 
@@ -75,6 +76,11 @@ async def create_channel(
         owner_id=str(user.id),
         channel_id=new_channel.id,
     )
+    await redis.enqueue_job(
+        "sync_channel_playlists_task",
+        owner_id=str(user.id),
+        channel_id=new_channel.id,
+    )
 
     return new_channel
 
@@ -96,6 +102,41 @@ async def refresh_channel(
     return await channel_service.refresh_channel_by_id(
         channel_id, db_session, youtube_client, owner_id=str(user.id)
     )
+
+
+@router.get("/{channel_id}/playlists", response_model=PaginatedResponse[ChannelPlaylistOut])
+async def list_channel_playlists(
+    channel_id: str,
+    db_session: DBSessionDep,
+    user: CurrentUserDep,
+    include_inactive: bool = Query(False, description="Include inactive synced playlists"),
+    limit: int = Query(50, ge=1, le=200, description="Number of items per page"),
+    offset: int = Query(0, ge=0, description="Number of items to skip"),
+):
+    return await channel_playlist_service.get_channel_playlists(
+        channel_id=channel_id,
+        db_session=db_session,
+        owner_id=str(user.id),
+        include_inactive=include_inactive,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.post("/{channel_id}/playlists/refresh", status_code=status.HTTP_202_ACCEPTED)
+async def refresh_channel_playlists(
+    channel_id: str,
+    db_session: DBSessionDep,
+    redis: ArqDep,
+    user: CurrentUserDep,
+):
+    await channel_service.get_channel_by_id(channel_id, db_session, owner_id=str(user.id))
+    await redis.enqueue_job(
+        "sync_channel_playlists_task",
+        owner_id=str(user.id),
+        channel_id=channel_id,
+    )
+    return {"status": "queued", "channel_id": channel_id}
 
 
 @router.delete("/{channel_id}", status_code=status.HTTP_204_NO_CONTENT)

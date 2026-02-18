@@ -15,7 +15,7 @@ from ..db.crud import crud_channel, crud_video
 from ..db.models.video import Video
 from ..clients.youtube import YouTubeAPI
 
-INITIAL_VIDEO_FETCH_LIMIT = 5000
+INITIAL_VIDEO_FETCH_LIMIT = 1000
 VIDEO_BATCH_SIZE = 500
 
 YT_RSS_BASE_URL = "https://www.youtube.com/feeds/videos.xml?channel_id="

@@ -76,7 +76,13 @@ class PlaylistOut(BaseSchema):
     id: str
     name: str
     description: str | None
+    thumbnail_url: str | None = None
     is_system: bool
+    source_type: str
+    source_channel_id: str | None = None
+    source_youtube_playlist_id: str | None = None
+    source_is_active: bool
+    source_last_synced_at: datetime | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -88,10 +94,33 @@ class PlaylistDetailOut(BaseSchema):
     id: str
     name: str
     description: str | None
+    thumbnail_url: str | None = None
     is_system: bool
+    source_type: str
+    source_channel_id: str | None = None
+    source_youtube_playlist_id: str | None = None
+    source_is_active: bool
+    source_last_synced_at: datetime | None = None
     current_position: int | None
     total_videos: int
     created_at: datetime
     video_ids: list[str]
+
+    model_config = {"from_attributes": True}
+
+
+class ChannelPlaylistOut(BaseSchema):
+    id: str
+    name: str
+    description: str | None
+    thumbnail_url: str | None
+    is_system: bool
+    source_type: str
+    source_channel_id: str | None
+    source_youtube_playlist_id: str | None
+    source_is_active: bool
+    source_last_synced_at: datetime | None
+    total_videos: int
+    created_at: datetime
 
     model_config = {"from_attributes": True}

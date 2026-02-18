@@ -70,6 +70,9 @@ class YouTubeAPI:
     def playlist_items_list(self, **kwargs):
         return self.youtube.playlistItems().list(**kwargs).execute()
 
+    def playlists_list(self, **kwargs):
+        return self.youtube.playlists().list(**kwargs).execute()
+
     def videos_list(self, **kwargs):
         return self.youtube.videos().list(**kwargs).execute()
 
@@ -83,6 +86,10 @@ class YouTubeAPI:
         response = await asyncio.to_thread(
             self.youtube.playlistItems().list(**kwargs).execute
         )
+        return response
+
+    async def playlists_list_async(self, **kwargs):
+        response = await asyncio.to_thread(self.youtube.playlists().list(**kwargs).execute)
         return response
 
     async def videos_list_async(self, **kwargs):

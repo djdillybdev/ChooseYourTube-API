@@ -24,6 +24,14 @@ from ..schemas.playlist import (
 )
 
 
+def _assert_playlist_is_mutable(playlist: Playlist) -> None:
+    if playlist.source_type == "channel":
+        raise HTTPException(
+            status_code=403,
+            detail="Channel-synced playlists are read-only.",
+        )
+
+
 async def get_all_playlists(
     db_session: AsyncSession,
     owner_id: str = "test-user",
@@ -79,7 +87,13 @@ async def _build_detail_out(
         id=playlist.id,
         name=playlist.name,
         description=playlist.description,
+        thumbnail_url=playlist.thumbnail_url,
         is_system=playlist.is_system,
+        source_type=playlist.source_type,
+        source_channel_id=playlist.source_channel_id,
+        source_youtube_playlist_id=playlist.source_youtube_playlist_id,
+        source_is_active=playlist.source_is_active,
+        source_last_synced_at=playlist.source_last_synced_at,
         current_position=playlist.current_position,
         total_videos=len(video_ids),
         created_at=playlist.created_at,
@@ -115,6 +129,7 @@ async def update_playlist(
     owner_id: str = "test-user",
 ) -> Playlist:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    _assert_playlist_is_mutable(playlist)
 
     if payload.name is not None:
         playlist.name = payload.name
@@ -131,6 +146,7 @@ async def delete_playlist_by_id(
     playlist_id: str, db_session: AsyncSession, owner_id: str = "test-user"
 ) -> None:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    _assert_playlist_is_mutable(playlist)
     await crud_playlist.delete_playlist(db_session, playlist)
 
 
@@ -141,6 +157,7 @@ async def set_playlist_videos(
     owner_id: str = "test-user",
 ) -> PlaylistDetailOut:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    _assert_playlist_is_mutable(playlist)
 
     # Validate all video IDs exist
     if payload.video_ids:
@@ -181,6 +198,7 @@ async def add_video_to_playlist(
     owner_id: str = "test-user",
 ) -> PlaylistDetailOut:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    _assert_playlist_is_mutable(playlist)
 
     # Validate video exists
     video = await get_videos(
@@ -205,6 +223,7 @@ async def add_videos_to_playlist(
     owner_id: str = "test-user",
 ) -> PlaylistDetailOut:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    _assert_playlist_is_mutable(playlist)
 
     # Validate all video IDs exist
     existing_videos = await get_videos(
@@ -232,6 +251,7 @@ async def move_video_in_playlist(
     owner_id: str = "test-user",
 ) -> PlaylistDetailOut:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    _assert_playlist_is_mutable(playlist)
 
     try:
         await crud_playlist.move_video_in_playlist(
@@ -283,6 +303,7 @@ async def remove_video_from_playlist(
     owner_id: str = "test-user",
 ) -> None:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    _assert_playlist_is_mutable(playlist)
 
     # Get position of video being removed (for current_position adjustment)
     video_ids = await crud_playlist.get_playlist_video_ids(
@@ -319,6 +340,7 @@ async def clear_playlist(
     playlist_id: str, db_session: AsyncSession, owner_id: str = "test-user"
 ) -> PlaylistDetailOut:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    _assert_playlist_is_mutable(playlist)
 
     await crud_playlist.clear_playlist_videos(
         db_session, playlist_id, owner_id=owner_id
@@ -336,6 +358,7 @@ async def shuffle_playlist(
     playlist_id: str, db_session: AsyncSession, owner_id: str = "test-user"
 ) -> PlaylistDetailOut:
     playlist = await get_playlist_by_id(playlist_id, db_session, owner_id=owner_id)
+    _assert_playlist_is_mutable(playlist)
 
     video_ids = await crud_playlist.get_playlist_video_ids(
         db_session, playlist_id, owner_id=owner_id

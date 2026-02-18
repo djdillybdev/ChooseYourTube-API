@@ -112,12 +112,15 @@ class TestChannelsRouter:
         assert data["id"] == "UC_new_channel"
         assert data["handle"] == "newchannel"  # @ stripped
 
-        # Verify background job was enqueued
-        mock_arq_redis.enqueue_job.assert_called_once_with(
-            "fetch_and_store_all_channel_videos_task",
-            owner_id="test-user",
-            channel_id="UC_new_channel",
-        )
+        # Verify both background jobs were enqueued
+        assert mock_arq_redis.enqueue_job.call_count == 2
+        calls = mock_arq_redis.enqueue_job.call_args_list
+        assert calls[0].args[0] == "fetch_and_store_all_channel_videos_task"
+        assert calls[0].kwargs["owner_id"] == "test-user"
+        assert calls[0].kwargs["channel_id"] == "UC_new_channel"
+        assert calls[1].args[0] == "sync_channel_playlists_task"
+        assert calls[1].kwargs["owner_id"] == "test-user"
+        assert calls[1].kwargs["channel_id"] == "UC_new_channel"
 
     async def test_create_channel_with_folder(
         self, test_client, mock_youtube_api, db_session
@@ -236,6 +239,73 @@ class TestChannelsRouter:
 
         # Verify refresh was called
         mock_refresh.assert_called_once()
+
+    async def test_list_channel_playlists(self, test_client, db_session):
+        """Test GET /channels/{id}/playlists returns channel-sourced playlists."""
+        from app.db.models.channel import Channel
+        from app.db.models.playlist import Playlist
+
+        channel = Channel(
+            id="UC_channel_pl",
+            handle="channelpl",
+            title="Channel Playlist Test",
+            uploads_playlist_id="UU_channel_pl",
+        )
+        db_session.add(channel)
+        db_session.add(
+            Playlist(
+                id="PL_channel_active",
+                name="Channel Active",
+                is_system=True,
+                source_type="channel",
+                source_channel_id=channel.id,
+                source_youtube_playlist_id="PL_yt_active",
+                source_is_active=True,
+            )
+        )
+        db_session.add(
+            Playlist(
+                id="PL_channel_inactive",
+                name="Channel Inactive",
+                is_system=True,
+                source_type="channel",
+                source_channel_id=channel.id,
+                source_youtube_playlist_id="PL_yt_inactive",
+                source_is_active=False,
+            )
+        )
+        await db_session.commit()
+
+        response = test_client.get(f"/channels/{channel.id}/playlists")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["total"] == 1
+        assert payload["items"][0]["source_youtube_playlist_id"] == "PL_yt_active"
+
+    async def test_refresh_channel_playlists_enqueues_job(
+        self, test_client, db_session, mock_arq_redis
+    ):
+        """Test POST /channels/{id}/playlists/refresh enqueues sync job."""
+        from app.db.models.channel import Channel
+
+        channel = Channel(
+            id="UC_channel_refresh_pl",
+            handle="refreshplaylists",
+            title="Refresh Playlists",
+            uploads_playlist_id="UU_channel_refresh_pl",
+        )
+        db_session.add(channel)
+        await db_session.commit()
+
+        response = test_client.post(f"/channels/{channel.id}/playlists/refresh")
+
+        assert response.status_code == 202
+        mock_arq_redis.enqueue_job.assert_called_once_with(
+            "sync_channel_playlists_task",
+            owner_id="test-user",
+            channel_id=channel.id,
+        )
 
     async def test_delete_channel(self, test_client, db_session):
         """Test DELETE /channels/{id} deletes channel."""
