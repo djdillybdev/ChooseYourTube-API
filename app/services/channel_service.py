@@ -1,4 +1,7 @@
 import asyncio
+import re
+from urllib.parse import urlparse
+
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +20,26 @@ def _get_best_thumbnail_url(thumbnails: dict) -> str | None:
         if quality in thumbnails:
             return thumbnails[quality]["url"]
     return None
+
+
+def _normalize_channel_handle(channel_input: str) -> str:
+    """Normalize user input into a bare YouTube handle (without leading @)."""
+    normalized_input = channel_input.strip()
+
+    if not normalized_input:
+        return normalized_input
+
+    parsed = urlparse(normalized_input)
+    if parsed.scheme and parsed.netloc:
+        for segment in parsed.path.split("/"):
+            if segment.startswith("@") and len(segment) > 1:
+                return segment[1:]
+
+    handle_match = re.search(r"@([A-Za-z0-9._-]+)", normalized_input)
+    if handle_match:
+        return handle_match.group(1)
+
+    return normalized_input.lstrip("@")
 
 
 async def get_channel_by_id(
@@ -126,7 +149,7 @@ async def create_channel(
     3. Creates the channel in the database.
     """
     # 1. Fetch data from YouTube API using an async thread
-    channel_data.handle = channel_data.handle.lstrip("@")
+    channel_data.handle = _normalize_channel_handle(channel_data.handle)
     try:
         response = await asyncio.to_thread(
             youtube_client.get_channel_info, handle=channel_data.handle

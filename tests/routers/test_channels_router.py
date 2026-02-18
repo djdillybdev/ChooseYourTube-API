@@ -122,6 +122,44 @@ class TestChannelsRouter:
         assert calls[1].kwargs["owner_id"] == "test-user"
         assert calls[1].kwargs["channel_id"] == "UC_new_channel"
 
+    async def test_create_channel_accepts_channel_url(
+        self, test_client, mock_youtube_api, mock_arq_redis
+    ):
+        """Test POST /channels/ accepts channel URL and extracts handle."""
+        youtube_response = {
+            "items": [
+                {
+                    "id": "UC_new_channel_url",
+                    "snippet": {
+                        "title": "URL Channel",
+                        "description": "Test Description",
+                        "thumbnails": {
+                            "high": {"url": "https://example.com/thumb.jpg"}
+                        },
+                    },
+                    "contentDetails": {
+                        "relatedPlaylists": {"uploads": "UU_new_uploads"}
+                    },
+                }
+            ]
+        }
+
+        with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
+            mock_to_thread.return_value = youtube_response
+
+            response = test_client.post(
+                "/channels/",
+                json={"handle": "https://www.youtube.com/@newchannel/videos"},
+            )
+
+            call_kwargs = mock_to_thread.call_args[1]
+            assert call_kwargs["handle"] == "newchannel"
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["id"] == "UC_new_channel_url"
+        assert data["handle"] == "newchannel"
+
     async def test_create_channel_with_folder(
         self, test_client, mock_youtube_api, db_session
     ):
